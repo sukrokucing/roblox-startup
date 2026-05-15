@@ -281,6 +281,11 @@ end)
 
 -- Notifications
 RE[RemoteEventsModule.Names.Notification].OnClientEvent:Connect(function(payload: {[string]: any})
+    -- FIX #12: server rejections (style="error") never fire RollResult, so reset isRolling here
+    -- to prevent the roll button being permanently locked after an insufficient-coins rejection
+    if payload.style == "error" then
+        isRolling = false
+    end
     UIManager.ShowNotification(payload.message :: string, payload.style :: string?)
 end)
 
