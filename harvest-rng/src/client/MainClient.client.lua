@@ -195,7 +195,7 @@ local function RefreshPlotFrame(index: number, state: PlotClientState)
     frame.BackgroundColor3 = Color3.fromRGB(80, 55, 30)
 
     if state.seedId then
-        local seedDef = SeedData.SeedData[state.seedId]
+        local seedDef = SeedData.Get(state.seedId)
         if seedDef then
             icon.Text = seedDef.emoji
             local rarityColor = UIManager.GetRarityColor(seedDef.rarity)
@@ -248,14 +248,14 @@ RE[RemoteEventsModule.Names.RollResult].OnClientEvent:Connect(function(results: 
     isRolling = false
     if #results == 1 then
         local r = results[1]
-        local seedDef = SeedData.SeedData[r.seedId]
+        local seedDef = SeedData.Get(r.seedId)
         local emoji   = seedDef and seedDef.emoji or "🌱"
         UIManager.ShowRollResult(emoji, r.seedName, r.rarity)
     else
         -- x10 roll
         local mapped: {{seedName: string, emoji: string, rarity: string}} = {}
         for _, r in results do
-            local seedDef = SeedData.SeedData[r.seedId]
+            local seedDef = SeedData.Get(r.seedId)
             table.insert(mapped, {
                 seedName = r.seedName,
                 emoji    = seedDef and seedDef.emoji or "🌱",
@@ -397,7 +397,7 @@ task.spawn(function()
 
                 if timerLbl then
                     local harvestSpeed   = (playerStats.harvestSpeed :: number?) or 1.0
-                    local seedDef        = SeedData.SeedData[state.seedId :: string]
+                    local seedDef        = SeedData.Get(state.seedId :: string)
                     local baseTime       = seedDef and seedDef.harvestTime or 60
                     local effectiveTime  = math.ceil(baseTime / math.max(harvestSpeed, 0.1))
                     local elapsed        = os.time() - (state.plantedAt :: number)
