@@ -90,6 +90,73 @@ refactor: short description
 docs: short description
 ```
 
+**Every commit that touches `.lua` files MUST also update docs in the same commit.**
+Never commit a code change without updating the relevant docs — see Doc Update Rules below.
+
+## Doc Update Rules (MANDATORY)
+
+After every code change, before committing, check and update ALL of the following:
+
+### README.md (`harvest-rng/README.md`)
+Update when code changes affect any of these sections:
+| Code changed | README section to update |
+|---|---|
+| New/removed module | `📁 Project Structure` tree + Roblox service table |
+| New/changed remote event | `🔑 Key Systems` — mention in relevant system section |
+| New DataStore | `DataStore` system description |
+| New gamepass / VIP perk | `Monetization` table |
+| New upgrade tier | `Adding a new upgrade tier` guide |
+| New seed type | `Adding a new seed` guide |
+| Behavior change (costs, timings) | `🔑 Key Systems` relevant section |
+| Debug flags added/changed | `Pull Request checklist` |
+| New CI/workflow | `Contribution Guide` |
+| Version status change | `🗺 Roadmap` table |
+
+### GDD.md (`harvest-rng/docs/GDD.md`)
+Update when design changes:
+| Code changed | GDD section to update |
+|---|---|
+| Rarity weights | §4.1 Rarity tiers table |
+| Luck formula | §4.2 Luck system |
+| Plot costs/count | §5.1 Plot progression |
+| Luck upgrade levels/costs | §5.2 Luck upgrades |
+| Harvest speed levels/costs | §5.3 Harvest Speed upgrades |
+| Economy values (roll cost etc) | §6 Economy Design |
+| Gamepass perks | §7.1 Gamepasses |
+| Daily streak rewards | §8.1 Daily Login Streak |
+| New feature added | §12 Feature Roadmap |
+
+### TECHNICAL_SPEC.md (`harvest-rng/docs/TECHNICAL_SPEC.md`)
+Update when architecture changes:
+| Code changed | TECH_SPEC section to update |
+|---|---|
+| New remote event/function | §6 Remote Events Reference table |
+| New DataStore | §5 DataStore Schema |
+| New module added | §2 Folder & Service Structure + §4 Module Dependency Graph |
+| Security model change | §9 Security Model |
+| New debug flag | §11 Testing Conventions |
+| Plot state machine change | §7 State Machine: Plot Lifecycle |
+
+### PLAY_GUIDE.md (`harvest-rng/docs/PLAY_GUIDE.md`)
+Update when player-facing behavior changes:
+- New mechanic or system available to players
+- Changed costs, timings, or rewards
+- New gamepass or its benefits
+
+## Doc Update Checklist (run before every commit)
+
+```
+[ ] README.md — does Project Structure still match src/ layout?
+[ ] README.md — do Key Systems descriptions match current code behavior?
+[ ] README.md — does Roadmap status reflect current state?
+[ ] GDD.md — do all numbers match Config.lua values?
+[ ] TECHNICAL_SPEC.md — do Remote Events tables list all current events?
+[ ] TECHNICAL_SPEC.md — does DataStore Schema match PlayerData type?
+[ ] PLAY_GUIDE.md — does player-facing info reflect current mechanics?
+```
+
+If a section doesn't need changing, leave it alone. If it does — update it in the **same commit** as the code change, with commit type `fix:` or `feat:` (not a separate `docs:` commit).
+
 ## Testing
 
 Use Roblox Studio. For logic-only changes, trace through the code path manually.
