@@ -145,27 +145,83 @@ jobs:
             fi
           done
 
-      - name: Create GitHub issue for new blockers
-        if: steps.checks.outputs.has_blockers == 'true' && github.event_name == 'push'
+      - name: Create GitHub issues for blockers and majors
+        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT_SHA: ${{ github.sha }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          BLOCKERS=$(cat /tmp/blockers.txt)
-          BODY="**Detected by:** BugByte CI on commit \`${COMMIT_SHA:0:8}\`
+          # --- BLOCKERS ---
+          if [ -s /tmp/blockers.txt ]; then
+            BLOCKERS=$(cat /tmp/blockers.txt)
+            TITLE="🔴 [BugByte CI] Blockers detected on $(date -u +%Y-%m-%d)"
+            # Check for existing open issue with same title pattern
+            EXISTING=$(gh issue list --search "🔴 [BugByte CI] Blockers detected" --state open --json number --jq '.[0].number' --repo "$GITHUB_REPOSITORY" 2>/dev/null || true)
+            if [ -z "$EXISTING" ]; then
+              gh issue create \
+                --title "$TITLE" \
+                --body "**Detected by:** BugByte CI on commit \`${COMMIT_SHA:0:8}\`
           **Commit:** $COMMIT_MSG
 
           ## Blockers found:
           $BLOCKERS
 
-          Please fix these before release. BugByte will automatically close this issue when the checks pass on the next push."
+          Fix these before release. BugByte will auto-close when checks pass." \
+                --label "bug,blocker,roboluau" \
+                --repo "$GITHUB_REPOSITORY" || true
+            else
+              echo "Blocker issue #$EXISTING already open, skipping duplicate"
+            fi
+          fi
 
-          gh issue create \
-            --title "🔴 [BugByte CI] Blockers detected on $(date -u +%Y-%m-%d)" \
-            --body "$BODY" \
-            --label "bug" \
-            --repo "$GITHUB_REPOSITORY" || true
+          # --- MAJORS: check each known major pattern ---
+          MAJORS_BODY=""
+
+          # Major: DEBUG flags declared but not wired
+          if ! grep -q "DEBUG_INSTANT_HARVEST" harvest-rng/src/server/modules/FarmManager.lua 2>/dev/null && \
+             ! grep -q "DEBUG_INSTANT_HARVEST" harvest-rng/src/server/GameManager.server.lua 2>/dev/null; then
+            MAJORS_BODY="$MAJORS_BODY\n- M-1: DEBUG flags declared in Config but not wired into game logic"
+          fi
+
+          # Major: GetUpgradeCost RF missing input validation
+          if grep -A3 "GetUpgradeCost.*OnServerInvoke" harvest-rng/src/server/GameManager.server.lua 2>/dev/null | grep -q "payload.stat"; then
+            if ! grep -B1 "payload.stat" harvest-rng/src/server/GameManager.server.lua | grep -q "type(payload)"; then
+              MAJORS_BODY="$MAJORS_BODY\n- M-2: GetUpgradeCost RemoteFunction missing input validation (crash on nil payload)"
+            fi
+          fi
+
+          # Major: HasGamepass RF no passId validation
+          if grep -A2 "HasGamepass.*OnServerInvoke" harvest-rng/src/server/GameManager.server.lua 2>/dev/null | grep -q "passId: number"; then
+            if ! grep -A5 "HasGamepass.*OnServerInvoke" harvest-rng/src/server/GameManager.server.lua | grep -q "type(passId)"; then
+              MAJORS_BODY="$MAJORS_BODY\n- M-3: HasGamepass RemoteFunction accepts unvalidated passId (API pollution risk)"
+            fi
+          fi
+
+          # Major: Leaderboard shows userId not display name
+          if grep -q "name  = entry.key" harvest-rng/src/server/GameManager.server.lua 2>/dev/null; then
+            MAJORS_BODY="$MAJORS_BODY\n- S-4: Leaderboard sends raw userId as player name — players see numbers not names"
+          fi
+
+          if [ -n "$MAJORS_BODY" ]; then
+            TITLE="🟡 [BugByte CI] Majors detected on $(date -u +%Y-%m-%d)"
+            EXISTING=$(gh issue list --search "🟡 [BugByte CI] Majors detected" --state open --json number --jq '.[0].number' --repo "$GITHUB_REPOSITORY" 2>/dev/null || true)
+            if [ -z "$EXISTING" ]; then
+              gh issue create \
+                --title "$TITLE" \
+                --body "**Detected by:** BugByte CI on commit \`${COMMIT_SHA:0:8}\`
+          **Commit:** $COMMIT_MSG
+
+          ## Major issues found:
+          $(printf '%b' "$MAJORS_BODY")
+
+          Should fix before release. Assign to RoboLuau 🎮 to fix." \
+                --label "bug,major,roboluau" \
+                --repo "$GITHUB_REPOSITORY" || true
+            else
+              echo "Majors issue #$EXISTING already open, skipping duplicate"
+            fi
+          fi
 
       - name: Close resolved BugByte issues
         if: steps.checks.outputs.has_blockers == 'false' && github.event_name == 'push'

@@ -1,0 +1,62 @@
+name: RoboLuau Auto-Fix
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to fix'
+        required: false
+
+jobs:
+  notify-roboluau:
+    name: "🎮 RoboLuau — Auto-Fix Trigger"
+    runs-on: ubuntu-latest
+    # Only trigger when the 'roboluau' label is applied
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && github.event.label.name == 'roboluau')
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: Post acknowledgment comment on issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          ISSUE_URL="${{ github.event.issue.html_url }}"
+          ISSUE_NUM="${{ github.event.issue.number }}"
+
+          gh issue comment "$ISSUE_NUM" \
+            --body "🎮 **RoboLuau triggered** — picking up this issue for fixing.
+
+          **What happens next:**
+          1. RoboLuau reads this issue + the full codebase
+          2. Applies targeted fix following the code patterns in \`AGENTS.md\`
+          3. Commits with message referencing this issue number
+          4. BugByte re-runs QA and closes this issue when fix is confirmed
+
+          *(This is an automated workflow notification — actual fix requires Moclaw heartbeat or manual \`pi\` session)*" \
+            --repo "$GITHUB_REPOSITORY" || true
+
+          echo "RoboLuau triggered for issue #$ISSUE_NUM: $ISSUE_TITLE"
+
+      - name: Summary
+        run: |
+          echo "## 🎮 RoboLuau Triggered" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Issue: **${{ github.event.issue.title }}**" >> $GITHUB_STEP_SUMMARY
+          echo "Issue URL: ${{ github.event.issue.html_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "RoboLuau will fix this on the next Moclaw heartbeat or can be triggered manually:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> $GITHUB_STEP_SUMMARY
+          echo 'export ANTHROPIC_API_KEY="<key>"' >> $GITHUB_STEP_SUMMARY
+          echo 'cd /home/user/.workspace/projects/roblox-startup' >> $GITHUB_STEP_SUMMARY
+          echo "pi -p \"Fix GitHub issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}\"" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
