@@ -10,6 +10,10 @@ jobs:
   bugbyte-review:
     name: "🐛 BugByte — Roblox QA Tester"
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,27 +28,30 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
       - name: Validate Lua file structure
+        id: checks
         run: |
           echo "## BugByte Automated Checks" >> $GITHUB_STEP_SUMMARY
+          BLOCKERS=""
 
           # Check 1: --!strict present in all .lua files
           echo "### Strict typing check" >> $GITHUB_STEP_SUMMARY
-          FAIL=0
+          STRICT_FAIL=0
           for f in $(find harvest-rng/src -name "*.lua"); do
             if ! head -1 "$f" | grep -q "^--!strict"; then
               echo "❌ Missing --!strict: $f" >> $GITHUB_STEP_SUMMARY
-              FAIL=1
+              STRICT_FAIL=1
             fi
           done
-          if [ $FAIL -eq 0 ]; then
+          if [ $STRICT_FAIL -eq 0 ]; then
             echo "✅ All .lua files have --!strict" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Check 2: No loadstring usage
           echo "### Anti-exploit: loadstring check" >> $GITHUB_STEP_SUMMARY
-          if grep -r "loadstring" harvest-rng/src/ --include="*.lua"; then
+          if grep -r "loadstring" harvest-rng/src/ --include="*.lua" > /tmp/loadstring_hits.txt 2>/dev/null && [ -s /tmp/loadstring_hits.txt ]; then
             echo "🔴 BLOCKER: loadstring found — exploitable!" >> $GITHUB_STEP_SUMMARY
-            exit 1
+            cat /tmp/loadstring_hits.txt >> $GITHUB_STEP_SUMMARY
+            BLOCKERS="$BLOCKERS\n- loadstring usage detected (exploitable)"
           else
             echo "✅ No loadstring usage" >> $GITHUB_STEP_SUMMARY
           fi
@@ -65,16 +72,34 @@ jobs:
             echo "✅ BindToClose found (shutdown save protection present)" >> $GITHUB_STEP_SUMMARY
           else
             echo "🔴 BLOCKER: No BindToClose — data loss on server shutdown!" >> $GITHUB_STEP_SUMMARY
-            exit 1
+            BLOCKERS="$BLOCKERS\n- Missing BindToClose (data loss on shutdown)"
           fi
 
-          # Check 5: Remote event server-side validation
+          # Check 5: Roll cooldown present (B-2 regression guard)
+          echo "### Roll rate limiting check" >> $GITHUB_STEP_SUMMARY
+          if grep -q "rollCooldowns" harvest-rng/src/server/GameManager.server.lua 2>/dev/null; then
+            echo "✅ Roll cooldown table present (B-2 fix intact)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "🔴 BLOCKER: Roll cooldowns missing — remote spam vector open!" >> $GITHUB_STEP_SUMMARY
+            BLOCKERS="$BLOCKERS\n- Missing rollCooldowns rate limit on RequestRoll (B-2 regression)"
+          fi
+
+          # Check 6: VIP luck recompute not += (B-1 regression guard)
+          echo "### VIP luck stacking check" >> $GITHUB_STEP_SUMMARY
+          if grep -A2 "HasGamepass.*VIPPlot" harvest-rng/src/server/GameManager.server.lua 2>/dev/null | grep -q "data\.luck +="; then
+            echo "🔴 BLOCKER: VIP luck stacking regression detected (data.luck += VIP_LUCK_BONUS)!" >> $GITHUB_STEP_SUMMARY
+            BLOCKERS="$BLOCKERS\n- VIP luck stacking regression (data.luck += on rejoin)"
+          else
+            echo "✅ VIP luck recomputed correctly (B-1 fix intact)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check 7: Remote event server-side validation
           echo "### Remote validation check" >> $GITHUB_STEP_SUMMARY
           if grep -r "OnServerEvent" harvest-rng/src/server/ --include="*.lua" > /dev/null; then
             echo "✅ OnServerEvent handlers found in server scripts" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # Check 6: Verify seed count = 30
+          # Check 8: Verify seed count = 30
           echo "### Seed count check" >> $GITHUB_STEP_SUMMARY
           SEED_COUNT=$(grep -c 'SeedData\["' harvest-rng/src/shared/SeedData.lua 2>/dev/null || echo 0)
           if [ "$SEED_COUNT" -eq 30 ]; then
@@ -83,16 +108,31 @@ jobs:
             echo "🟡 MAJOR: Seed count = $SEED_COUNT (GDD expects 30)" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # Check 7: Config values match GDD
+          # Check 9: Config values match GDD
           echo "### Economy config check" >> $GITHUB_STEP_SUMMARY
           ROLL_COST=$(grep "ROLL_COST_COINS" harvest-rng/src/shared/Config.lua | grep -o "[0-9]*" | head -1)
           START_COINS=$(grep "STARTING_COINS" harvest-rng/src/shared/Config.lua | grep -o "[0-9]*" | head -1)
           echo "Roll cost: $ROLL_COST (GDD: 50)" >> $GITHUB_STEP_SUMMARY
           echo "Starting coins: $START_COINS (GDD: 250)" >> $GITHUB_STEP_SUMMARY
 
+          # Check 10: Debug flags off
+          echo "### Debug flags check" >> $GITHUB_STEP_SUMMARY
+          DEBUG_ON=$(grep -E "DEBUG_(INSTANT_HARVEST|FREE_ROLLS|LOG_ROLLS)\s*=\s*true" harvest-rng/src/shared/Config.lua || true)
+          if [ -n "$DEBUG_ON" ]; then
+            echo "🔴 BLOCKER: Debug flag(s) left ON — do not publish!" >> $GITHUB_STEP_SUMMARY
+            echo "$DEBUG_ON" >> $GITHUB_STEP_SUMMARY
+            BLOCKERS="$BLOCKERS\n- Debug flags enabled in Config.lua"
+          else
+            echo "✅ All debug flags are false" >> $GITHUB_STEP_SUMMARY
+          fi
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "**BugByte automated checks complete.** Full manual review required for exploitability, economy balance, and UX bugs." >> $GITHUB_STEP_SUMMARY
+
+          # Export blockers for next step
+          printf "%b" "$BLOCKERS" > /tmp/blockers.txt
+          echo "has_blockers=$([ -s /tmp/blockers.txt ] && echo true || echo false)" >> $GITHUB_OUTPUT
 
       - name: Check docs are present
         run: |
@@ -104,3 +144,50 @@ jobs:
               echo "🟡 Missing: $doc" >> $GITHUB_STEP_SUMMARY
             fi
           done
+
+      - name: Create GitHub issue for new blockers
+        if: steps.checks.outputs.has_blockers == 'true' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          BLOCKERS=$(cat /tmp/blockers.txt)
+          BODY="**Detected by:** BugByte CI on commit \`${COMMIT_SHA:0:8}\`
+          **Commit:** $COMMIT_MSG
+
+          ## Blockers found:
+          $BLOCKERS
+
+          Please fix these before release. BugByte will automatically close this issue when the checks pass on the next push."
+
+          gh issue create \
+            --title "🔴 [BugByte CI] Blockers detected on $(date -u +%Y-%m-%d)" \
+            --body "$BODY" \
+            --label "bug" \
+            --repo "$GITHUB_REPOSITORY" || true
+
+      - name: Close resolved BugByte issues
+        if: steps.checks.outputs.has_blockers == 'false' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          # Close any open BugByte CI blocker issues since all checks now pass
+          OPEN_ISSUES=$(gh issue list --label "bug" --state open --json number,title \
+            --jq '.[] | select(.title | startswith("🔴 [BugByte")) | .number' \
+            --repo "$GITHUB_REPOSITORY" 2>/dev/null || true)
+
+          if [ -n "$OPEN_ISSUES" ]; then
+            for issue_num in $OPEN_ISSUES; do
+              gh issue comment "$issue_num" \
+                --body "✅ **All BugByte CI checks now pass** on commit \`${COMMIT_SHA:0:8}\`. Auto-closing." \
+                --repo "$GITHUB_REPOSITORY" || true
+              gh issue close "$issue_num" \
+                --reason completed \
+                --repo "$GITHUB_REPOSITORY" || true
+              echo "Closed issue #$issue_num"
+            done
+          else
+            echo "No open BugByte issues to close."
+          fi
