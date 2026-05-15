@@ -1,0 +1,106 @@
+name: BugByte QA Review
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  bugbyte-review:
+    name: "🐛 BugByte — Roblox QA Tester"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: List changed files
+        id: changed
+        run: |
+          echo "## Changed files in this push:" >> $GITHUB_STEP_SUMMARY
+          git diff --name-only HEAD~1 HEAD | tee changed_files.txt >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Validate Lua file structure
+        run: |
+          echo "## BugByte Automated Checks" >> $GITHUB_STEP_SUMMARY
+
+          # Check 1: --!strict present in all .lua files
+          echo "### Strict typing check" >> $GITHUB_STEP_SUMMARY
+          FAIL=0
+          for f in $(find harvest-rng/src -name "*.lua"); do
+            if ! head -1 "$f" | grep -q "^--!strict"; then
+              echo "❌ Missing --!strict: $f" >> $GITHUB_STEP_SUMMARY
+              FAIL=1
+            fi
+          done
+          if [ $FAIL -eq 0 ]; then
+            echo "✅ All .lua files have --!strict" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check 2: No loadstring usage
+          echo "### Anti-exploit: loadstring check" >> $GITHUB_STEP_SUMMARY
+          if grep -r "loadstring" harvest-rng/src/ --include="*.lua"; then
+            echo "🔴 BLOCKER: loadstring found — exploitable!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "✅ No loadstring usage" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check 3: No wait() (deprecated) — should use task.wait()
+          echo "### Deprecated wait() check" >> $GITHUB_STEP_SUMMARY
+          WAIT_COUNT=$(grep -rn "\bwait(" harvest-rng/src/ --include="*.lua" | grep -v "task.wait\|WaitForChild\|wait_load" | wc -l)
+          if [ "$WAIT_COUNT" -gt 0 ]; then
+            echo "🟡 MAJOR: $WAIT_COUNT deprecated wait() calls found (use task.wait())" >> $GITHUB_STEP_SUMMARY
+            grep -rn "\bwait(" harvest-rng/src/ --include="*.lua" | grep -v "task.wait\|WaitForChild\|wait_load" >> $GITHUB_STEP_SUMMARY || true
+          else
+            echo "✅ No deprecated wait() calls" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check 4: DataStore BindToClose present
+          echo "### DataStore BindToClose check" >> $GITHUB_STEP_SUMMARY
+          if grep -r "BindToClose" harvest-rng/src/ --include="*.lua" > /dev/null; then
+            echo "✅ BindToClose found (shutdown save protection present)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "🔴 BLOCKER: No BindToClose — data loss on server shutdown!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          # Check 5: Remote event server-side validation
+          echo "### Remote validation check" >> $GITHUB_STEP_SUMMARY
+          if grep -r "OnServerEvent" harvest-rng/src/server/ --include="*.lua" > /dev/null; then
+            echo "✅ OnServerEvent handlers found in server scripts" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check 6: Verify seed count = 30
+          echo "### Seed count check" >> $GITHUB_STEP_SUMMARY
+          SEED_COUNT=$(grep -c 'SeedData\["' harvest-rng/src/shared/SeedData.lua 2>/dev/null || echo 0)
+          if [ "$SEED_COUNT" -eq 30 ]; then
+            echo "✅ Seed count = 30 (matches GDD)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "🟡 MAJOR: Seed count = $SEED_COUNT (GDD expects 30)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check 7: Config values match GDD
+          echo "### Economy config check" >> $GITHUB_STEP_SUMMARY
+          ROLL_COST=$(grep "ROLL_COST_COINS" harvest-rng/src/shared/Config.lua | grep -o "[0-9]*" | head -1)
+          START_COINS=$(grep "STARTING_COINS" harvest-rng/src/shared/Config.lua | grep -o "[0-9]*" | head -1)
+          echo "Roll cost: $ROLL_COST (GDD: 50)" >> $GITHUB_STEP_SUMMARY
+          echo "Starting coins: $START_COINS (GDD: 250)" >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "**BugByte automated checks complete.** Full manual review required for exploitability, economy balance, and UX bugs." >> $GITHUB_STEP_SUMMARY
+
+      - name: Check docs are present
+        run: |
+          echo "### Documentation check" >> $GITHUB_STEP_SUMMARY
+          for doc in harvest-rng/docs/GDD.md harvest-rng/docs/TECHNICAL_SPEC.md harvest-rng/docs/PLAY_GUIDE.md harvest-rng/README.md; do
+            if [ -f "$doc" ]; then
+              echo "✅ $doc" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "🟡 Missing: $doc" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
