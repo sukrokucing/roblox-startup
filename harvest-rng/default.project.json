@@ -1,0 +1,42 @@
+{
+  "name": "HarvestRNG",
+  "tree": {
+    "$className": "DataModel",
+
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "GameManager": {
+        "$path": "src/server/GameManager.server.lua"
+      },
+      "modules": {
+        "$className": "Folder",
+        "DataManager": { "$path": "src/server/modules/DataManager.lua" },
+        "RNGManager":  { "$path": "src/server/modules/RNGManager.lua" },
+        "FarmManager": { "$path": "src/server/modules/FarmManager.lua" }
+      }
+    },
+
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$className": "Folder",
+        "Config":       { "$path": "src/shared/Config.lua" },
+        "RemoteEvents": { "$path": "src/shared/RemoteEvents.lua" },
+        "SeedData":     { "$path": "src/shared/SeedData.lua" }
+      }
+    },
+
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "MainClient": { "$path": "src/client/MainClient.client.lua" },
+        "modules": {
+          "$className": "Folder",
+          "UIManager":        { "$path": "src/client/modules/UIManager.lua" },
+          "InventoryManager": { "$path": "src/client/modules/InventoryManager.lua" }
+        }
+      }
+    }
+  }
+}

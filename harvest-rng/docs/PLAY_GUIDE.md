@@ -1,0 +1,127 @@
+# Harvest RNG — Play Guide
+
+## Quick Setup with Rojo (Recommended)
+
+```bash
+# Prerequisites: Roblox Studio + Rojo plugin (rojo.space) + Node.js
+npm install -g rojo
+cd harvest-rng
+rojo serve default.project.json
+```
+
+Then in Roblox Studio: open the Rojo plugin panel → **Connect**.  
+All files sync automatically on save. Press **Play** (F5) to test.
+
+---
+
+## Manual Setup (No Rojo)
+
+### Step 1 — Create Explorer structure in Studio
+
+```
+ServerScriptService/
+  GameManager          ← Script
+  modules/             ← Folder
+    DataManager        ← ModuleScript
+    RNGManager         ← ModuleScript
+    FarmManager        ← ModuleScript
+
+ReplicatedStorage/
+  Shared/              ← Folder
+    Config             ← ModuleScript
+    RemoteEvents       ← ModuleScript
+    SeedData           ← ModuleScript
+
+StarterPlayer/
+  StarterPlayerScripts/
+    MainClient         ← LocalScript
+    modules/           ← Folder
+      UIManager        ← ModuleScript
+      InventoryManager ← ModuleScript
+```
+
+### Step 2 — Copy script contents
+
+| File in repo | Studio destination |
+|---|---|
+| `src/server/GameManager.server.lua` | ServerScriptService > **GameManager** (Script) |
+| `src/server/modules/DataManager.lua` | ServerScriptService > modules > **DataManager** |
+| `src/server/modules/RNGManager.lua` | ServerScriptService > modules > **RNGManager** |
+| `src/server/modules/FarmManager.lua` | ServerScriptService > modules > **FarmManager** |
+| `src/shared/Config.lua` | ReplicatedStorage > Shared > **Config** |
+| `src/shared/RemoteEvents.lua` | ReplicatedStorage > Shared > **RemoteEvents** |
+| `src/shared/SeedData.lua` | ReplicatedStorage > Shared > **SeedData** |
+| `src/client/MainClient.client.lua` | StarterPlayerScripts > **MainClient** (LocalScript) |
+| `src/client/modules/UIManager.lua` | StarterPlayerScripts > modules > **UIManager** |
+| `src/client/modules/InventoryManager.lua` | StarterPlayerScripts > modules > **InventoryManager** |
+
+### Step 3 — Build the GUI
+
+1. Open **View → Command Bar** in Studio
+2. Paste the entire contents of `src/studio/BuildGUI.lua`
+3. Press **Enter**
+4. You should see: `✅ HarvestRNG_GUI built — N instances. Press Play to test!`
+
+### Step 4 — Play
+
+Press **F5** (Play). No errors should appear in Output.
+
+---
+
+## Gameplay Loop
+
+| Step | Action |
+|------|--------|
+| 1️⃣ | **Roll** — Click "Roll" (50 🪙) or "Roll ×10" (450 🪙) to get random seeds |
+| 2️⃣ | **Plant** — Click "Plant 🌱" on an empty plot → pick a seed from the modal |
+| 3️⃣ | **Wait** — Timer counts down on each plot (Common = 30s, Mythic = up to 4h) |
+| 4️⃣ | **Harvest** — Click "Harvest" when plot shows ✅ Ready! → coins pop up |
+| 5️⃣ | **Upgrade** — Spend coins on Luck (better RNG) or Harvest Speed (faster grows) |
+| 6️⃣ | **Unlock Plots** — Click 🔒 on a locked plot to buy it with coins |
+| 7️⃣ | **Repeat** — Roll more seeds, flex rare finds on the leaderboard |
+
+---
+
+## Rarity Table
+
+| Rarity | Weight | Base Value Range | Harvest Time |
+|--------|--------|-----------------|--------------|
+| Common | 55% | 10–22 🪙 | 30–55s |
+| Uncommon | 25% | 65–120 🪙 | 75–115s |
+| Rare | 12% | 380–620 🪙 | 3–5 min |
+| Epic | 5% | 2,200–4,800 🪙 | 10–15 min |
+| Legendary | 2.5% | 15,000–42,000 🪙 | 30–60 min |
+| Mythic | 0.5% | 150,000–500,000 🪙 | 2–4 hours |
+
+---
+
+## Before Publishing
+
+1. Create 3 gamepasses in [Roblox Creator Dashboard](https://create.roblox.com):
+   - **Lucky Roll ×10** — replace x10 bundle with free rolls
+   - **Auto-Farm** — auto-harvest every 3 seconds  
+   - **VIP Plot** — +5 extra plots, +15 luck bonus
+
+2. Update `src/shared/Config.lua`:
+```lua
+Config.GAMEPASS_IDS = {
+    LuckyRollX10 = 12345678,   -- your actual IDs
+    AutoFarm     = 12345679,
+    VIPPlot      = 12345680,
+}
+```
+
+3. Change `Config.DATASTORE_NAME` to a unique string before first publish to avoid data conflicts.
+
+4. Set up `OrderedDataStore` key in `Config.LEADERBOARD_KEY` (default: `"TotalHarvested_v1"`).
+
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| `WaitForChild timeout` on HarvestRNG_GUI | Run `BuildGUI.lua` from command bar first |
+| `attempt to index nil (Events)` | Server started before GUI — wait for server to fully init |
+| DataStore errors in Studio | Normal in Studio; works on live server with published place |
+| Plots don't show up | Check `PlotContainer` is a ScrollingFrame with UIGridLayout child |

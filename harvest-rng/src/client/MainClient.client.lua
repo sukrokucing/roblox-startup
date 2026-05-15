@@ -146,16 +146,12 @@ local function GetOrCreatePlotFrame(index: number): Frame
     plantBtn.Visible         = true
     plantBtn.Parent          = frame
 
-    -- Plant: opens inventory to pick a seed for this plot
+    -- Plant: open InventoryManager seed-picker modal
     plantBtn.Activated:Connect(function()
-        -- TODO: integrate with inventory seed-picker modal
-        -- For now, auto-plant first available seed
-        for seedId, count in playerInventory do
-            if count > 0 then
-                RE[RemoteEventsModule.Names.RequestPlant]:FireServer(index, seedId)
-                break
-            end
-        end
+        local InventoryManager = require(script.Parent.modules.InventoryManager)
+        InventoryManager.OpenPicker(index, playerInventory, function(seedId: string)
+            RE[RemoteEventsModule.Names.RequestPlant]:FireServer(index, seedId)
+        end)
     end)
 
     -- Unlock button (shown for locked plots)
