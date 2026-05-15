@@ -99,6 +99,8 @@ function FarmManager.IsReady(player: Player, plotIndex: number): boolean
     local plot, data = GetPlot(player, plotIndex)
     if not plot or not data then return false end
     if not plot.seedId or not plot.plantedAt then return false end
+    -- DEBUG: skip grow timer entirely so devs can test harvest flow immediately
+    if Config.DEBUG_INSTANT_HARVEST then return true end
 
     local growTime   = RNGManager.CalcHarvestTime(plot.seedId :: string, data.harvestSpeed)
     local elapsed    = os.time() - (plot.plantedAt :: number)

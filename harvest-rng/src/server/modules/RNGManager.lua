@@ -133,12 +133,18 @@ function RNGManager.RollSeed(luckBonus: number): RollResult
     local rarity  = PickRarity(weights)
     local seed    = PickSeedFromRarity(rarity)
 
-    return {
+    local result: RollResult = {
         seedId    = seed.id,
         seedName  = seed.name,
         rarity    = seed.rarity,
         baseValue = seed.baseValue,
     }
+    -- DEBUG: log every roll result to the server output for testing
+    if Config.DEBUG_LOG_ROLLS then
+        print(string.format("[RNG DEBUG] luck=%d → rarity=%s seed=%s value=%d",
+            luckBonus, result.rarity, result.seedId, result.baseValue))
+    end
+    return result
 end
 
 ---  Roll multiple seeds at once (for x10 bundle).

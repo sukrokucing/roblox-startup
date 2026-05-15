@@ -53,6 +53,10 @@ end
 
 DataManager.Init()
 
+-- FIX S-4: Persistent store for userId → displayName mapping used by leaderboard
+local playerNameStore: DataStore = game:GetService("DataStoreService")
+    :GetDataStore("PlayerNames_v1")
+
 -- ── 3a. Per-player cooldown tables (rate limiting) ────────────
 
 -- Roll cooldowns — prevent rapid-fire RequestRoll / RequestRollX10
@@ -186,6 +190,18 @@ local function OnPlayerAdded(player: Player)
         inventory         = data.inventory,
     })
 
+    -- FIX S-4: Persist display name so leaderboard can show names instead of userIds
+    task.spawn(function()
+        local ok, displayName = pcall(function()
+            return game:GetService("Players"):GetNameFromUserIdAsync(player.UserId)
+        end)
+        if ok and type(displayName) == "string" then
+            pcall(function()
+                playerNameStore:SetAsync(tostring(player.UserId), displayName)
+            end)
+        end
+    end)
+
     -- Send initial plot state
     SendPlotUpdate(player)
 
@@ -250,7 +266,10 @@ RE[RemoteEvents.Names.RequestRoll].OnServerEvent:Connect(function(player)
         return
     end
 
-    data.coins -= Config.ROLL_COST_COINS
+    -- DEBUG: skip coin cost so devs can roll freely without grinding
+    if not Config.DEBUG_FREE_ROLLS then
+        data.coins -= Config.ROLL_COST_COINS
+    end
     local result = RNGManager.RollSeed(data.luck)
 
     -- Add seed to inventory
@@ -281,7 +300,10 @@ RE[RemoteEvents.Names.RequestRollX10].OnServerEvent:Connect(function(player)
         return
     end
 
-    data.coins -= cost
+    -- DEBUG: skip coin cost for x10 roll
+    if not Config.DEBUG_FREE_ROLLS then
+        data.coins -= cost
+    end
     local results = RNGManager.RollMultiple(10, data.luck)
 
     for _, r in results do
@@ -453,9 +475,13 @@ RE[RemoteEvents.Names.RequestLeaderboard].OnServerEvent:Connect(function(player)
         while true do
             local page = pages:GetCurrentPage()
             for _, entry in page do
+                -- FIX S-4: look up display name from PlayerNames_v1; fall back to userId
+                local nameOk, displayName = pcall(function()
+                    return playerNameStore:GetAsync(entry.key)
+                end)
                 table.insert(entries, {
                     rank  = rank,
-                    name  = entry.key,   -- userId; resolve name client-side or store separately
+                    name  = (nameOk and type(displayName) == "string" and displayName) or entry.key,
                     value = entry.value,
                 })
                 rank += 1
@@ -473,21 +499,32 @@ end)
 
 local SeedDataModule = require(game.ReplicatedStorage.Shared.SeedData)
 
-RF[RemoteEvents.FunctionNames.GetSeedInfo].OnServerInvoke = function(_player, seedId: string)
+-- FIX N-1: type + length guard so a crafted 1MB string can't be allocated
+RF[RemoteEvents.FunctionNames.GetSeedInfo].OnServerInvoke = function(_player, seedId)
+    if type(seedId) ~= "string" or #seedId > 64 then return nil end
     local ok, def = pcall(SeedDataModule.Get, seedId)
     return ok and def or nil
 end
 
-RF[RemoteEvents.FunctionNames.GetUpgradeCost].OnServerInvoke = function(_player, payload: {stat: string, level: number})
+-- FIX M-2: validate payload fully before indexing — nil payload crashes without this
+RF[RemoteEvents.FunctionNames.GetUpgradeCost].OnServerInvoke = function(_player, payload)
+    if type(payload) ~= "table" then return 0 end
+    if type(payload.stat) ~= "string" then return 0 end
+    if type(payload.level) ~= "number" then return 0 end
+    local level = math.clamp(math.floor(payload.level), 0, 100)
+    if level ~= level then return 0 end  -- NaN guard
     if payload.stat == "luck" then
-        return CalcLuckUpgradeCost(payload.level)
+        return CalcLuckUpgradeCost(level)
     elseif payload.stat == "harvestSpeed" then
-        return CalcHarvestSpeedUpgradeCost(payload.level)
+        return CalcHarvestSpeedUpgradeCost(level)
     end
     return 0
 end
 
-RF[RemoteEvents.FunctionNames.HasGamepass].OnServerInvoke = function(player, passId: number)
+-- FIX M-3: validate passId before hitting MarketplaceService API
+RF[RemoteEvents.FunctionNames.HasGamepass].OnServerInvoke = function(player, passId)
+    if type(passId) ~= "number" or passId <= 0 or passId ~= passId then return false end
+    passId = math.floor(passId)
     local ok, owns = pcall(function()
         return MarketplaceService:UserOwnsGamePassAsync(player.UserId, passId)
     end)

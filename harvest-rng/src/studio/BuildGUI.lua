@@ -1,3 +1,4 @@
+--!strict
 --[[
   BuildGUI.lua — Harvest RNG GUI Builder
   
