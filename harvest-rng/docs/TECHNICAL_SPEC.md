@@ -69,28 +69,26 @@ Harvest RNG follows the standard Roblox authoritative-server model:
 ```
 game
 ├── ServerScriptService
-│   └── src
-│       └── server
-│           ├── GameManager.server.lua   ← bootstrap script
-│           └── modules
-│               ├── DataManager.lua
-│               ├── RNGManager.lua
-│               └── FarmManager.lua
+│   ├── GameManager                  ← bootstrap Script
+│   └── modules
+│       ├── DataManager              ← ModuleScript
+│       ├── RNGManager               ← ModuleScript
+│       └── FarmManager              ← ModuleScript
 │
 ├── ReplicatedStorage
-│   └── Shared
-│       ├── SeedData.lua
-│       ├── RemoteEvents.lua
-│       └── Config.lua
-│   └── Events           ← created at runtime by GameManager
+│   ├── Shared
+│   │   ├── SeedData                 ← ModuleScript
+│   │   ├── RemoteEvents             ← ModuleScript
+│   │   └── Config                   ← ModuleScript
+│   ├── Events           ← created at runtime by GameManager
 │   └── Functions        ← created at runtime by GameManager
 │
-├── StarterPlayerScripts
-│   └── src
-│       └── client
-│           ├── MainClient.client.lua
-│           └── modules
-│               └── UIManager.lua
+├── StarterPlayer
+│   └── StarterPlayerScripts
+│       ├── MainClient               ← LocalScript
+│       └── modules
+│           ├── UIManager            ← ModuleScript
+│           └── InventoryManager     ← ModuleScript
 │
 └── StarterGui
     └── HarvestRNG_GUI   ← ScreenGui (built in Studio)

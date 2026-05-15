@@ -37,11 +37,13 @@ function InventoryManager.OpenPicker(
     CloseModal()
 
     -- dim overlay
-    local overlay = Instance.new("Frame")
+    local overlay = Instance.new("TextButton")
     overlay.Name                   = "InventoryPickerOverlay"
     overlay.Size                   = UDim2.fromScale(1, 1)
     overlay.BackgroundColor3       = Color3.fromRGB(0, 0, 0)
     overlay.BackgroundTransparency = 0.45
+    overlay.AutoButtonColor        = false
+    overlay.Text                   = ""
     overlay.ZIndex                 = 30
     overlay.Parent                 = GUI
     activeModal = overlay

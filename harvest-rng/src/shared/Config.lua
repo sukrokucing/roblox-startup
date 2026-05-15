@@ -24,7 +24,7 @@ Config.STARTING_PLOTS          = 3          -- plots unlocked at start
 Config.MAX_PLOTS               = 25
 
 -- Cost in coins to unlock each successive plot slot (index = slot number)
-Config.PLOT_UNLOCK_COSTS: {number} = {
+Config.PLOT_UNLOCK_COSTS = {
     [4]  = 500,
     [5]  = 1_000,
     [6]  = 2_500,
@@ -70,7 +70,7 @@ Config.ROLL_ANIMATION_DURATION = 1.8        -- seconds for roll reveal tween
 
 -- ── Daily streak rewards ────────────────────────────────────
 -- rewards[day] = { coins = N, gems = N }; days > #table wrap to index 7
-Config.DAILY_STREAK_REWARDS: {{coins: number, gems: number}} = {
+Config.DAILY_STREAK_REWARDS = {
     [1] = { coins = 100,   gems = 0  },
     [2] = { coins = 200,   gems = 0  },
     [3] = { coins = 300,   gems = 1  },
@@ -90,7 +90,7 @@ Config.DATASTORE_RETRY_ATTEMPTS = 3
 Config.DATASTORE_RETRY_BASE_DELAY = 1.0    -- seconds; doubles each attempt
 
 -- ── Gamepasses (fill in actual Roblox IDs before publishing) ─
-Config.GAMEPASS_IDS: {[string]: number} = {
+Config.GAMEPASS_IDS = {
     LuckyRollX10  = 0,   -- TODO: replace with real gamepass ID
     AutoFarm      = 0,
     VIPPlot       = 0,
@@ -102,11 +102,11 @@ Config.VIP_LUCK_BONUS          = 15         -- flat luck added for VIP owners
 Config.AUTOFARM_POLL_INTERVAL  = 3          -- seconds between auto-harvest checks
 
 -- ── Rarity system (mirrors RNGManager weights) ─────────────
-Config.RARITY_ORDER: {string} = {
+Config.RARITY_ORDER = {
     "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"
 }
 
-Config.RARITY_BASE_WEIGHTS: {[string]: number} = {
+Config.RARITY_BASE_WEIGHTS = {
     Common    = 55.0,
     Uncommon  = 25.0,
     Rare      = 12.0,

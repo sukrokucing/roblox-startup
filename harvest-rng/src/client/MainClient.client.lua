@@ -27,7 +27,8 @@ if not EventsFolder or not FunctionsFolder then
 end
 
 local RemoteEventsModule = require(game.ReplicatedStorage.Shared.RemoteEvents)
-local UIManager          = require(script.Parent.modules.UIManager)
+local ClientModules      = script.Parent:WaitForChild("modules")
+local UIManager          = require(ClientModules:WaitForChild("UIManager"))
 local SeedData           = require(game.ReplicatedStorage.Shared.SeedData)
 
 -- ── Resolve remote references ─────────────────────────────────
@@ -148,7 +149,7 @@ local function GetOrCreatePlotFrame(index: number): Frame
 
     -- Plant: open InventoryManager seed-picker modal
     plantBtn.Activated:Connect(function()
-        local InventoryManager = require(script.Parent.modules.InventoryManager)
+        local InventoryManager = require(ClientModules:WaitForChild("InventoryManager"))
         InventoryManager.OpenPicker(index, playerInventory, function(seedId: string)
             RE[RemoteEventsModule.Names.RequestPlant]:FireServer(index, seedId)
         end)
