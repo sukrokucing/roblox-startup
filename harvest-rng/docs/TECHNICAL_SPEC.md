@@ -178,7 +178,8 @@ No circular dependencies. Shared modules have zero requires of their own (pure d
 
 **DataStore name:** `HarvestRNG_PlayerData_v1`  
 **Key format:** `player_{userId}`  
-**Leaderboard:** `OrderedDataStore("TotalHarvested_v1")`
+**Leaderboard:** `OrderedDataStore("TotalHarvested_v1")`  
+**Display names:** `DataStore("PlayerNames_v1")` — key: `{userId}`, value: `displayName` string; written on every `OnPlayerAdded`, read by leaderboard handler
 
 ### Player data schema (Luau types)
 
@@ -271,9 +272,9 @@ All remotes live in `ReplicatedStorage/Events` (RemoteEvents) and `ReplicatedSto
 
 | Function name | Client sends | Server returns |
 |---------------|-------------|----------------|
-| `GetSeedInfo` | `seedId: string` | `SeedDefinition` or `nil` |
-| `GetUpgradeCost` | `{stat, level}` | `number` (coin cost) |
-| `HasGamepass` | `passId: number` | `boolean` |
+| `GetSeedInfo` | `seedId: string` (max 64 chars, validated) | `SeedDefinition` or `nil` |
+| `GetUpgradeCost` | `{stat: string, level: number}` (table validated; level clamped 0–100) | `number` (coin cost, or `0` on invalid input) |
+| `HasGamepass` | `passId: number` (must be `> 0`, validated before API call) | `boolean` |
 
 ---
 
@@ -388,10 +389,12 @@ Every `OnServerEvent` handler:
 Add to `Config.lua` for development only (remove before publish):
 
 ```lua
-Config.DEBUG_INSTANT_HARVEST = false   -- all harvest times = 1 s
-Config.DEBUG_FREE_ROLLS       = false   -- rolls cost 0 coins
-Config.DEBUG_LOG_ROLLS        = false   -- print every roll result to output
+Config.DEBUG_INSTANT_HARVEST = false   -- FarmManager.IsReady() returns true immediately
+Config.DEBUG_FREE_ROLLS       = false   -- RequestRoll / RequestRollX10 skip coin deduction
+Config.DEBUG_LOG_ROLLS        = false   -- RNGManager.RollSeed() prints result to output
 ```
+
+All three flags are **wired into actual game logic** — setting any to `true` has immediate effect. Set all to `false` before publishing.
 
 ### Unit-testable modules
 

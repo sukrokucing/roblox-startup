@@ -142,6 +142,7 @@ Each point of Luck shifts `0.08 %` weight from Common toward rarer tiers. Max lu
 - `GetAsync` / `SetAsync` each retry 3 times with exponential backoff.
 - `game:BindToClose` saves all loaded players before server shutdown.
 - Schema migrations handled by `Reconcile()` — missing fields get defaults.
+- `PlayerNames_v1` DataStore caches `userId → displayName` on every join for leaderboard name resolution.
 
 ### Farm System (`FarmManager.lua`)
 
@@ -280,7 +281,7 @@ See `docs/GDD.md § 12` for the full feature roadmap.
 
 | Version | Status | Highlights |
 |---------|--------|-----------|
-| v1.0 | 🔨 In development | Core loop, 30 seeds, 3 gamepasses, daily streak |
+| v1.0 | ✅ Feature complete — QA pass in progress | Core loop, 30 seeds, 3 gamepasses, daily streak |
 | v1.1 | 📋 Planned | Seed Dex, developer products, improved animations |
 | v1.2 | 📋 Planned | Seasonal events, weekly leaderboard, social flex |
 | v2.0 | 💭 Concept | Prestige system, pet companions, player trading |
