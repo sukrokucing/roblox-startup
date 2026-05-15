@@ -382,6 +382,14 @@ UpgradeBtn.Activated:Connect(function()
     UpgradePanel.Visible = not UpgradePanel.Visible
 end)
 
+-- FIX N-NEW-2: wire the CloseBtn inside UpgradePanel (created by BuildGUI but never connected)
+local UpgradePanelCloseBtn = UpgradePanel:FindFirstChild("CloseBtn") :: TextButton?
+if UpgradePanelCloseBtn then
+    UpgradePanelCloseBtn.Activated:Connect(function()
+        UpgradePanel.Visible = false
+    end)
+end
+
 -- ── Plot timer update heartbeat ────────────────────────────────
 -- Updates timer labels on plots every second without re-fetching from server.
 
@@ -397,10 +405,17 @@ task.spawn(function()
 
                 if timerLbl then
                     local harvestSpeed   = (playerStats.harvestSpeed :: number?) or 1.0
-                    local seedDef        = SeedData.Get(state.seedId :: string)
-                    local baseTime       = seedDef and seedDef.harvestTime or 60
-                    local effectiveTime  = math.ceil(baseTime / math.max(harvestSpeed, 0.1))
-                    local elapsed        = os.time() - (state.plantedAt :: number)
+                    -- FIX N-NEW-1: apply rarity harvest-time modifier (matches server RNGManager.CalcHarvestTime)
+                    -- FIX N-NEW-3: pcall SeedData.Get to avoid crashing the entire timer coroutine
+                    local ok, seedDef = pcall(SeedData.Get, state.seedId :: string)
+                    if not ok or not seedDef then continue end
+                    local RARITY_TIME_MODS: {[string]: number} = {
+                        Common=1.00, Uncommon=1.00, Rare=0.95,
+                        Epic=0.90, Legendary=0.85, Mythic=0.80,
+                    }
+                    local rarityMod     = RARITY_TIME_MODS[seedDef.rarity] or 1.0
+                    local effectiveTime = math.ceil(seedDef.harvestTime * rarityMod / math.max(harvestSpeed, 0.1))
+                    local elapsed       = os.time() - (state.plantedAt :: number)
                     local remaining      = math.max(0, effectiveTime - elapsed)
 
                     if remaining == 0 then

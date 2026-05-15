@@ -67,6 +67,10 @@ local ROLL_COOLDOWN = 0.5                           -- minimum seconds between r
 local streakCooldowns: {[number]: number} = {}     -- userId → last claim os.clock()
 local STREAK_COOLDOWN = 5                           -- minimum seconds between streak checks
 
+-- FIX N-NEW-4: action cooldowns — prevent rapid-fire Plant/Harvest/Unlock/Upgrade spam
+local actionCooldowns: {[number]: number} = {}     -- userId → last action os.clock()
+local ACTION_COOLDOWN = 0.3                         -- minimum seconds between farm/upgrade actions
+
 -- ── 3. Helpers ────────────────────────────────────────────────
 
 local function HasGamepass(player: Player, passName: string): boolean
@@ -243,6 +247,7 @@ Players.PlayerRemoving:Connect(function(player: Player)
     -- Clean up cooldown state to avoid memory leaks
     rollCooldowns[player.UserId]   = nil
     streakCooldowns[player.UserId] = nil
+    actionCooldowns[player.UserId] = nil  -- FIX N-NEW-4: clean up action cooldown state
     DataManager.Unload(player)
 end)
 
@@ -318,6 +323,10 @@ end)
 
 -- Plant
 RE[RemoteEvents.Names.RequestPlant].OnServerEvent:Connect(function(player, plotIndex: number, seedId: string)
+    -- FIX N-NEW-4: rate limit to prevent rapid-fire plant spam
+    local now = os.clock()
+    if (now - (actionCooldowns[player.UserId] or 0)) < ACTION_COOLDOWN then return end
+    actionCooldowns[player.UserId] = now
     -- FIX M-2: clamp plotIndex; FIX M-3: bound seedId length
     if type(plotIndex) ~= "number" or type(seedId) ~= "string" then return end
     if #seedId > 64 then return end  -- M-3: reject absurdly long seedId strings
@@ -337,6 +346,10 @@ end)
 
 -- Harvest
 RE[RemoteEvents.Names.RequestHarvest].OnServerEvent:Connect(function(player, plotIndex: number)
+    -- FIX N-NEW-4: rate limit
+    local now = os.clock()
+    if (now - (actionCooldowns[player.UserId] or 0)) < ACTION_COOLDOWN then return end
+    actionCooldowns[player.UserId] = now
     -- FIX M-2: clamp and NaN-guard plotIndex
     if type(plotIndex) ~= "number" then return end
     plotIndex = math.clamp(math.floor(plotIndex), 1, Config.MAX_PLOTS)
@@ -361,6 +374,10 @@ end)
 
 -- Unlock plot
 RE[RemoteEvents.Names.RequestUnlockPlot].OnServerEvent:Connect(function(player, plotIndex: number)
+    -- FIX N-NEW-4: rate limit
+    local now = os.clock()
+    if (now - (actionCooldowns[player.UserId] or 0)) < ACTION_COOLDOWN then return end
+    actionCooldowns[player.UserId] = now
     -- FIX M-2: clamp and NaN-guard plotIndex
     if type(plotIndex) ~= "number" then return end
     plotIndex = math.clamp(math.floor(plotIndex), 1, Config.MAX_PLOTS)
@@ -379,6 +396,10 @@ end)
 
 -- Upgrade Luck
 RE[RemoteEvents.Names.RequestUpgradeLuck].OnServerEvent:Connect(function(player)
+    -- FIX N-NEW-4: rate limit
+    local now = os.clock()
+    if (now - (actionCooldowns[player.UserId] or 0)) < ACTION_COOLDOWN then return end
+    actionCooldowns[player.UserId] = now
     local data = DataManager.GetData(player)
     if not data then return end
     if data.luckLevel >= Config.MAX_LUCK_LEVEL then
@@ -411,6 +432,10 @@ end)
 
 -- Upgrade Harvest Speed
 RE[RemoteEvents.Names.RequestUpgradeHarvestSpeed].OnServerEvent:Connect(function(player)
+    -- FIX N-NEW-4: rate limit
+    local now = os.clock()
+    if (now - (actionCooldowns[player.UserId] or 0)) < ACTION_COOLDOWN then return end
+    actionCooldowns[player.UserId] = now
     local data = DataManager.GetData(player)
     if not data then return end
     if data.harvestSpeedLevel >= Config.MAX_HARVEST_SPEED_LEVEL then
