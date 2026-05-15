@@ -109,7 +109,7 @@ local UIManager = {}
 
 --- Updates the coin counter in the HUD.
 function UIManager.UpdateCoins(amount: number)
-    CoinsLabel.Text = "🪙 " .. FormatNumber(amount)
+    CoinsLabel.Text = "Coins " .. FormatNumber(amount)
     -- Quick bounce
     Tween(CoinsLabel, TweenInfo.new(0.08, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         TextSize = CoinsLabel.TextSize + 4
@@ -163,7 +163,7 @@ function UIManager.ShowRollResult(seedEmoji: string, seedNameStr: string, rarity
     SeedName.Text     = seedNameStr
     SeedName.TextTransparency = 1
     SeedName.TextColor3 = color
-    RarityLabel.Text  = "✦ " .. rarity .. " ✦"
+    RarityLabel.Text  = rarity
     RarityLabel.TextColor3 = RarityColors[rarity] or Color3.new(1, 1, 1)
     RarityLabel.TextTransparency = 1
 
@@ -211,7 +211,7 @@ function UIManager.ShowHarvestPopup(coins: number, rarity: string, part: BasePar
         local label = Instance.new("TextLabel")
         label.Size             = UDim2.fromScale(1, 1)
         label.BackgroundTransparency = 1
-        label.Text             = "+" .. FormatNumber(coins) .. " 🪙"
+        label.Text             = "+" .. FormatNumber(coins) .. " coins"
         label.TextColor3       = color
         label.TextScaled       = true
         label.Font             = Enum.Font.GothamBold
@@ -231,7 +231,7 @@ function UIManager.ShowHarvestPopup(coins: number, rarity: string, part: BasePar
         screenLabel.Size             = UDim2.fromOffset(200, 35)
         screenLabel.Position         = UDim2.new(0.75, 0, 0.35, 0)
         screenLabel.BackgroundTransparency = 1
-        screenLabel.Text             = "+" .. FormatNumber(coins) .. " 🪙"
+        screenLabel.Text             = "+" .. FormatNumber(coins) .. " coins"
         screenLabel.TextColor3       = color
         screenLabel.TextScaled       = true
         screenLabel.Font             = Enum.Font.GothamBold
@@ -308,7 +308,7 @@ function UIManager.ShowStreakBanner(day: number, coins: number, gems: number)
     rewards.Size             = UDim2.new(1, 0, 0.4, 0)
     rewards.Position         = UDim2.fromScale(0, 0.35)
     rewards.BackgroundTransparency = 1
-    rewards.Text             = string.format("+%s 🪙  +%d 💎", FormatNumber(coins), gems)
+    rewards.Text             = string.format("+%s coins  +%d gems", FormatNumber(coins), gems)
     rewards.TextColor3       = Color3.new(1, 1, 1)
     rewards.TextScaled       = true
     rewards.Font             = Enum.Font.Gotham

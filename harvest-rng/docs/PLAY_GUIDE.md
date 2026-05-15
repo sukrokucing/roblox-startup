@@ -72,7 +72,7 @@ Press **F5** (Play). No errors should appear in Output.
 
 | Step | Action |
 |------|--------|
-| 1️⃣ | **Roll** — Click "Roll" (50 🪙) or "Roll ×10" (450 🪙) to get random seeds |
+| 1️⃣ | **Roll** — Click "Roll" (50 coins) or "Roll ×10" (450 coins) to get random seeds |
 | 2️⃣ | **Plant** — Click "Plant 🌱" on an empty plot → pick a seed from the modal |
 | 3️⃣ | **Wait** — Timer counts down on each plot (Common = 30s, Mythic = up to 4h) |
 | 4️⃣ | **Harvest** — Click "Harvest" when plot shows ✅ Ready! → coins pop up |
@@ -86,12 +86,12 @@ Press **F5** (Play). No errors should appear in Output.
 
 | Rarity | Weight | Base Value Range | Harvest Time |
 |--------|--------|-----------------|--------------|
-| Common | 55% | 10–22 🪙 | 30–55s |
-| Uncommon | 25% | 65–120 🪙 | 75–115s |
-| Rare | 12% | 380–620 🪙 | 3–5 min |
-| Epic | 5% | 2,200–4,800 🪙 | 10–15 min |
-| Legendary | 2.5% | 15,000–42,000 🪙 | 30–60 min |
-| Mythic | 0.5% | 150,000–500,000 🪙 | 2–4 hours |
+| Common | 55% | 10–22 coins | 30–55s |
+| Uncommon | 25% | 65–120 coins | 75–115s |
+| Rare | 12% | 380–620 coins | 3–5 min |
+| Epic | 5% | 2,200–4,800 coins | 10–15 min |
+| Legendary | 2.5% | 15,000–42,000 coins | 30–60 min |
+| Mythic | 0.5% | 150,000–500,000 coins | 2–4 hours |
 
 ---
 

@@ -321,7 +321,7 @@ RE[RemoteEventsModule.Names.LeaderboardData].OnClientEvent:Connect(function(entr
         row.LayoutOrder      = i
         row.BackgroundTransparency = i % 2 == 0 and 0.85 or 0.95
         row.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-        row.Text             = string.format("#%d  %s  —  %s 🪙",
+        row.Text             = string.format("#%d  %s  -  %s coins",
             entry.rank,
             tostring(entry.name),
             tostring(entry.value)

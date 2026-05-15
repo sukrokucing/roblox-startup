@@ -58,7 +58,7 @@ Config.LUCK_UPGRADE_SCALE      = 1.65
 
 -- ── Harvest Speed upgrades ─────────────────────────────────
 -- Each tier multiplies harvest time by HARVEST_SPEED_FACTOR
-Config.HARVEST_SPEED_FACTOR    = 0.90       -- −10 % per level
+Config.HARVEST_SPEED_FACTOR    = 0.90       -- -10 % per level
 Config.MAX_HARVEST_SPEED_LEVEL = 15
 Config.HARVEST_SPEED_BASE_COST = 350
 Config.HARVEST_SPEED_SCALE     = 1.80

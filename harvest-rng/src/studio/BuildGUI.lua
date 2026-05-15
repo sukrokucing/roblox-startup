@@ -78,7 +78,7 @@ Make("UIPadding", hud, {
     PaddingLeft = UDim.new(0,12), PaddingRight = UDim.new(0,12)
 })
 
-StatLabel("CoinsLabel",  "🪙 250",        1)
+StatLabel("CoinsLabel",  "Coins 250",    1)
 StatLabel("GemsLabel",   "💎 0",          2)
 StatLabel("LuckLabel",   "🍀 Luck 0 (Lv0)", 3)
 StatLabel("StreakLabel", "🔥 Streak: 0",  4)
@@ -162,7 +162,7 @@ Make("TextLabel", resultFrame, {
     Size = UDim2.new(0.55, 0, 0.36, 0),
     Position = UDim2.fromScale(0.24, 0.60),
     BackgroundTransparency = 1,
-    Text = "✦ ??? ✦",
+    Text = "???",
     TextColor3 = Color3.fromRGB(160,160,160),
     Font = Enum.Font.Gotham,
     TextScaled = true,
@@ -186,8 +186,8 @@ local function RollBtn(name: string, text: string, yPos: number, bgColor: Color3
     return btn
 end
 
-RollBtn("RollButton",    "🎲  Roll  (50 🪙)",      132, Color3.fromRGB(60, 190, 80))
-RollBtn("RollX10Button", "🎰  Roll ×10  (450 🪙)", 174, Color3.fromRGB(210, 155, 30))
+RollBtn("RollButton",    "🎲  Roll  (50 coins)",      132, Color3.fromRGB(60, 190, 80))
+RollBtn("RollX10Button", "🎰  Roll ×10  (450 coins)", 174, Color3.fromRGB(210, 155, 30))
 
 -- ── Farm Panel ────────────────────────────────────────────────
 
@@ -272,8 +272,8 @@ local function UpgradeBtn(name: string, text: string, yPos: number)
     return btn
 end
 
-UpgradeBtn("LuckUpgradeButton",  "🍀  Upgrade Luck\n+5 Luck per level  ·  200 🪙",    52)
-UpgradeBtn("SpeedUpgradeButton", "⚡  Upgrade Harvest Speed\n−10% grow time  ·  350 🪙", 124)
+UpgradeBtn("LuckUpgradeButton",  "🍀  Upgrade Luck\n+5 Luck per level - 200 coins",     52)
+UpgradeBtn("SpeedUpgradeButton", "⚡  Upgrade Harvest Speed\n-10% grow time - 350 coins", 124)
 
 Make("TextButton", upgradePanel, {
     Name = "CloseBtn",
