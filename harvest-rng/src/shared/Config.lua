@@ -118,4 +118,10 @@ Config.RARITY_BASE_WEIGHTS: {[string]: number} = {
 -- How much each +1 luck point shifts weight away from Common toward rarer tiers
 Config.LUCK_WEIGHT_SHIFT       = 0.08
 
+-- ── Debug flags (set ALL to false before publishing!) ───────
+-- S-3: These were documented in TECHNICAL_SPEC §11 but were missing from code.
+Config.DEBUG_INSTANT_HARVEST   = false   -- skip grow timer; plots ready immediately
+Config.DEBUG_FREE_ROLLS        = false   -- roll without spending coins
+Config.DEBUG_LOG_ROLLS         = false   -- print RNG roll details to server console
+
 return Config

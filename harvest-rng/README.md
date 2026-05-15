@@ -39,7 +39,8 @@ harvest-rng/
     ├── client/
     │   ├── MainClient.client.lua      ← Client entry point + UI wiring
     │   └── modules/
-    │       └── UIManager.lua          ← All UI updates and animations
+    │       ├── UIManager.lua          ← All UI updates and animations
+    │       └── InventoryManager.lua   ← Client-side inventory display and management
     └── shared/
         ├── SeedData.lua               ← 30 seed definitions (both sides)
         ├── RemoteEvents.lua           ← Remote event name constants
@@ -54,6 +55,7 @@ harvest-rng/
 | `src/server/modules/*.lua` | `ServerScriptService/src/server/modules/` |
 | `src/client/MainClient.client.lua` | `StarterPlayerScripts/src/client/` |
 | `src/client/modules/UIManager.lua` | `StarterPlayerScripts/src/client/modules/` |
+| `src/client/modules/InventoryManager.lua` | `StarterPlayerScripts/src/client/modules/` |
 | `src/shared/*.lua` | `ReplicatedStorage/Shared/` |
 
 ---

@@ -160,8 +160,8 @@ Late-game plot unlocks are intentionally expensive — they're status symbols an
 
 ### 5.3 Harvest Speed upgrades
 
-- 15 levels available. Each level reduces harvest time by 10 % (multiplicative).
-- Max speed = `1 / 0.9^15 ≈ 4.7×` faster than base.
+- 15 levels available. Each level divides harvest time by 0.90 (×1.111 speed per level, multiplicative).
+- Max speed = `1 / 0.9^15 ≈ 4.86×` faster than base. <!-- M-5: corrected from 4.7× — formula is 1/factor^level, not ×(1-0.10)^level; actual result at level 15 is 4.857× -->
 - Cost scales: `350 × 1.80^level`. Level 15 costs roughly 300 000 coins.
 
 ### 5.4 Seed Dex (future)

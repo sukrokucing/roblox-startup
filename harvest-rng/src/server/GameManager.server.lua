@@ -53,6 +53,16 @@ end
 
 DataManager.Init()
 
+-- ── 3a. Per-player cooldown tables (rate limiting) ────────────
+
+-- Roll cooldowns — prevent rapid-fire RequestRoll / RequestRollX10
+local rollCooldowns: {[number]: number} = {}       -- userId → last roll os.clock()
+local ROLL_COOLDOWN = 0.5                           -- minimum seconds between rolls
+
+-- Streak cooldowns — prevent RequestClaimStreak spam
+local streakCooldowns: {[number]: number} = {}     -- userId → last claim os.clock()
+local STREAK_COOLDOWN = 5                           -- minimum seconds between streak checks
+
 -- ── 3. Helpers ────────────────────────────────────────────────
 
 local function HasGamepass(player: Player, passName: string): boolean
@@ -99,6 +109,16 @@ local function HandleDailyStreak(player: Player)
     if not data then return end
 
     local now        = os.time()
+
+    -- FIX M-4: Guard first-login case — brand-new players get lastLogin == 0.
+    -- Without this guard, hoursSince would be enormous, resetting streak to 0
+    -- AND immediately granting Day-1 reward on the same call (double-grant on join).
+    if data.lastLogin == 0 then
+        data.lastLogin = now
+        DataManager.MarkDirty(player)
+        return  -- don't grant day-1 reward on server init; client claim button handles it
+    end
+
     local hoursSince = (now - data.lastLogin) / 3600
 
     if hoursSince >= Config.DAILY_STREAK_RESET_HOURS then
@@ -137,8 +157,10 @@ local function OnPlayerAdded(player: Player)
     local data = DataManager.Load(player)
 
     -- Apply VIP perks
+    -- FIX B-1: Never += VIP bonus — always recompute luck from luckLevel so rejoining
+    -- doesn't stack VIP_LUCK_BONUS an unlimited number of times.
     if HasGamepass(player, "VIPPlot") then
-        data.luck += Config.VIP_LUCK_BONUS
+        data.luck = (data.luckLevel * Config.LUCK_PER_UPGRADE) + Config.VIP_LUCK_BONUS
         -- Unlock extra VIP plots
         for i = Config.STARTING_PLOTS + 1, Config.STARTING_PLOTS + Config.VIP_EXTRA_PLOTS do
             if data.plots[i] and not data.plots[i].isUnlocked then
@@ -146,6 +168,9 @@ local function OnPlayerAdded(player: Player)
             end
         end
         DataManager.MarkDirty(player)
+    else
+        -- Ensure non-VIP players' luck stays consistent with their level
+        data.luck = data.luckLevel * Config.LUCK_PER_UPGRADE
     end
 
     -- Send full initial data snapshot
@@ -199,6 +224,9 @@ end
 -- ── 5. PlayerRemoving ─────────────────────────────────────────
 
 Players.PlayerRemoving:Connect(function(player: Player)
+    -- Clean up cooldown state to avoid memory leaks
+    rollCooldowns[player.UserId]   = nil
+    streakCooldowns[player.UserId] = nil
     DataManager.Unload(player)
 end)
 
@@ -206,6 +234,11 @@ end)
 
 -- Roll (single)
 RE[RemoteEvents.Names.RequestRoll].OnServerEvent:Connect(function(player)
+    -- FIX B-2: Rate limit to prevent remote spam / TOCTOU double-spend
+    local now = os.clock()
+    if (now - (rollCooldowns[player.UserId] or 0)) < ROLL_COOLDOWN then return end
+    rollCooldowns[player.UserId] = now
+
     local data = DataManager.GetData(player)
     if not data then return end
 
@@ -231,6 +264,11 @@ end)
 
 -- Roll x10
 RE[RemoteEvents.Names.RequestRollX10].OnServerEvent:Connect(function(player)
+    -- FIX B-2: Rate limit — same cooldown table as single roll
+    local now = os.clock()
+    if (now - (rollCooldowns[player.UserId] or 0)) < ROLL_COOLDOWN then return end
+    rollCooldowns[player.UserId] = now
+
     local data = DataManager.GetData(player)
     if not data then return end
 
@@ -258,7 +296,11 @@ end)
 
 -- Plant
 RE[RemoteEvents.Names.RequestPlant].OnServerEvent:Connect(function(player, plotIndex: number, seedId: string)
+    -- FIX M-2: clamp plotIndex; FIX M-3: bound seedId length
     if type(plotIndex) ~= "number" or type(seedId) ~= "string" then return end
+    if #seedId > 64 then return end  -- M-3: reject absurdly long seedId strings
+    plotIndex = math.clamp(math.floor(plotIndex), 1, Config.MAX_PLOTS)
+    if plotIndex ~= plotIndex then return end  -- NaN guard
     local result = FarmManager.PlantSeed(player, plotIndex, seedId)
     if result.success then
         SendPlotUpdate(player)
@@ -273,7 +315,10 @@ end)
 
 -- Harvest
 RE[RemoteEvents.Names.RequestHarvest].OnServerEvent:Connect(function(player, plotIndex: number)
+    -- FIX M-2: clamp and NaN-guard plotIndex
     if type(plotIndex) ~= "number" then return end
+    plotIndex = math.clamp(math.floor(plotIndex), 1, Config.MAX_PLOTS)
+    if plotIndex ~= plotIndex then return end  -- NaN guard
     local result = FarmManager.Harvest(player, plotIndex)
     if result.success then
         RE[RemoteEvents.Names.HarvestResult]:FireClient(player, {
@@ -294,7 +339,10 @@ end)
 
 -- Unlock plot
 RE[RemoteEvents.Names.RequestUnlockPlot].OnServerEvent:Connect(function(player, plotIndex: number)
+    -- FIX M-2: clamp and NaN-guard plotIndex
     if type(plotIndex) ~= "number" then return end
+    plotIndex = math.clamp(math.floor(plotIndex), 1, Config.MAX_PLOTS)
+    if plotIndex ~= plotIndex then return end  -- NaN guard
     local result = FarmManager.UnlockPlot(player, plotIndex)
     if result.success then
         SendStatsUpdate(player)
@@ -381,6 +429,11 @@ end)
 
 -- Daily streak claim (manual button)
 RE[RemoteEvents.Names.RequestClaimStreak].OnServerEvent:Connect(function(player)
+    -- FIX M-4: Rate limit to prevent streak handler spam
+    local now = os.clock()
+    if (now - (streakCooldowns[player.UserId] or 0)) < STREAK_COOLDOWN then return end
+    streakCooldowns[player.UserId] = now
+
     HandleDailyStreak(player)
     SendStatsUpdate(player)
 end)
@@ -408,7 +461,9 @@ RE[RemoteEvents.Names.RequestLeaderboard].OnServerEvent:Connect(function(player)
                 rank += 1
             end
             if pages.IsFinished then break end
-            pages:AdvanceToNextPageAsync()
+            -- FIX N-2: AdvanceToNextPageAsync can throw on DataStore timeout; guard it
+            local advOk = pcall(function() pages:AdvanceToNextPageAsync() end)
+            if not advOk then break end
         end
         RE[RemoteEvents.Names.LeaderboardData]:FireClient(player, entries)
     end)

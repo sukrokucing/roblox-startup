@@ -12,7 +12,6 @@
 
 local DataStoreService = game:GetService("DataStoreService")
 local Players          = game:GetService("Players")
-local RunService       = game:GetService("RunService")
 
 local Config = require(game.ReplicatedStorage.Shared.Config)
 
@@ -226,7 +225,10 @@ end
 
 --- Initialises the auto-save heartbeat loop.
 --- Should only be called once from GameManager.
+local _initialized = false
 function DataManager.Init()
+    if _initialized then return end
+    _initialized = true
     task.spawn(function()
         while true do
             task.wait(Config.AUTOSAVE_INTERVAL)

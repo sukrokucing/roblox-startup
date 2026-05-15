@@ -69,9 +69,9 @@ function FarmManager.PlantSeed(player: Player, plotIndex: number, seedId: string
         return { success = false, reason = "Plot already has a crop." }
     end
 
-    -- Validate seed exists
-    local seedDef = SeedData.SeedData[seedId]
-    if not seedDef then
+    -- Validate seed exists (use public API instead of direct table access)
+    local seedOk, seedDef = pcall(SeedData.Get, seedId)
+    if not seedOk or not seedDef then
         return { success = false, reason = "Unknown seed: " .. seedId }
     end
 
