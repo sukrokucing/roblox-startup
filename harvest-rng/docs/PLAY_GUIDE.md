@@ -70,6 +70,8 @@ Press **F5** (Play). No errors should appear in Output.
 
 ## Gameplay Loop
 
+For a first-session route, see [NEW_PLAYER_WALKTHROUGH.md](NEW_PLAYER_WALKTHROUGH.md).
+
 | Step | Action |
 |------|--------|
 | 1️⃣ | **Roll** — Click "Roll" (50 coins) or "Roll ×10" (450 coins) to get random seeds |

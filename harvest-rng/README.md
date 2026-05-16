@@ -28,7 +28,9 @@ harvest-rng/
 ├── README.md                          ← You are here
 ├── docs/
 │   ├── GDD.md                         ← Full Game Design Document
-│   └── TECHNICAL_SPEC.md              ← Architecture & data schema
+│   ├── TECHNICAL_SPEC.md              ← Architecture & data schema
+│   ├── PLAY_GUIDE.md                  ← Setup and gameplay guide
+│   └── NEW_PLAYER_WALKTHROUGH.md      ← First-session player walkthrough
 └── src/
     ├── server/
     │   ├── GameManager.server.lua     ← Server bootstrap + remote handlers
