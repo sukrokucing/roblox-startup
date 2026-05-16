@@ -449,9 +449,10 @@ local function RenderInventoryPanel()
         icon.Size = UDim2.fromOffset(48, 48)
         icon.Position = UDim2.fromOffset(6, 5)
         icon.BackgroundTransparency = 1
-        icon.Text = entry.def.emoji
+        icon.Text = ""
         icon.TextScaled = true
         icon.Parent = row
+        UIManager.RenderSeedIcon(icon, entry.def.icon, entry.def.name, icon.ZIndex + 1)
 
         local nameLabel = Instance.new("TextLabel")
         nameLabel.Size = UDim2.new(1, -116, 0, 30)
@@ -569,12 +570,13 @@ local function EnsureWorldCrop(plotPart: BasePart, seedId: string): Model
     icon.Name = "Icon"
     icon.Size = UDim2.fromScale(1, 1)
     icon.BackgroundTransparency = 1
-    icon.Text = seedDef.emoji
+    icon.Text = ""
     icon.TextScaled = true
     icon.TextColor3 = Color3.new(1, 1, 1)
     icon.TextStrokeColor3 = Color3.fromRGB(12, 12, 18)
     icon.TextStrokeTransparency = 0.35
     icon.Parent = billboard
+    UIManager.RenderSeedIcon(icon, seedDef.icon, seedDef.name, icon.ZIndex + 1)
 
     return newCrop
 end
@@ -717,6 +719,7 @@ local function RefreshPlotFrame(index: number, state: PlotClientState)
 
     if not state.isUnlocked then
         frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        UIManager.ClearSeedIcon(icon)
         icon.Text     = "🔒"
         timerLbl.Text = ""
         harvestBtn.Visible = false
@@ -731,7 +734,7 @@ local function RefreshPlotFrame(index: number, state: PlotClientState)
     if state.seedId then
         local seedDef = SeedData.Get(state.seedId)
         if seedDef then
-            icon.Text = seedDef.emoji
+            UIManager.RenderSeedIcon(icon, seedDef.icon, seedDef.name, icon.ZIndex + 1)
             local rarityColor = UIManager.GetRarityColor(seedDef.rarity)
             icon.TextColor3 = rarityColor
         end
@@ -739,6 +742,7 @@ local function RefreshPlotFrame(index: number, state: PlotClientState)
         plantBtn.Visible   = false
         -- Timer updated in the heartbeat loop below
     else
+        UIManager.ClearSeedIcon(icon)
         icon.Text = "🌱"
         icon.TextColor3 = Color3.new(1, 1, 1)
         timerLbl.Text   = ""
@@ -787,16 +791,16 @@ RE[RemoteEventsModule.Names.RollResult].OnClientEvent:Connect(function(results: 
     if #results == 1 then
         local r = results[1]
         local seedDef = SeedData.Get(r.seedId)
-        local emoji   = seedDef and seedDef.emoji or "🌱"
-        UIManager.ShowRollResult(emoji, r.seedName, r.rarity)
+        local icon = seedDef and seedDef.icon or nil
+        UIManager.ShowRollResult(icon, r.seedName, r.rarity)
     else
         -- x10 roll
-        local mapped: {{seedName: string, emoji: string, rarity: string}} = {}
+        local mapped: {{seedName: string, icon: any?, rarity: string}} = {}
         for _, r in results do
             local seedDef = SeedData.Get(r.seedId)
             table.insert(mapped, {
                 seedName = r.seedName,
-                emoji    = seedDef and seedDef.emoji or "🌱",
+                icon     = seedDef and seedDef.icon or nil,
                 rarity   = r.rarity,
             })
         end

@@ -129,6 +129,7 @@ game
 ### Client owns:
 
 - UI rendering and animation
+- Seed icon rendering: `SeedData.icon` provides Roblox-safe procedural icon metadata, and `UIManager.RenderSeedIcon()` draws crop badges without relying on unsupported emoji glyphs.
 - Button input debouncing (visual-only)
 - Local plot timer countdown (display only; server re-validates on harvest)
 - Sound effects and particles
@@ -301,7 +302,7 @@ LOCKED ──────────────────────► EMP
 - Harvest is a no-op if the plot is EMPTY or LOCKED.
 - `plantedAt` is always set as `os.time()` on the server (never client timestamp).
 - Plot unlock purchases call `DataManager.Save()` immediately after success so expansion progress survives short Studio sessions.
-- `PlotStateUpdate` drives both the ScreenGui plot grid and local 3D plot visuals under `Workspace.HarvestRNG_World.WorldPlots_5x5`, including unlock markers and centered planted crop billboards.
+- `PlotStateUpdate` drives both the ScreenGui plot grid and local 3D plot visuals under `Workspace.HarvestRNG_World.WorldPlots_5x5`, including unlock markers and centered planted crop billboards. Planted seed icons are rendered from `SeedData.icon` metadata rather than raw emoji text.
 
 ---
 
@@ -462,7 +463,7 @@ In **Game Settings → Security**, enable **Enable Studio Access to API Services
 
 - [ ] Player joins → data loads, HUD populates
 - [ ] Roll button → deducts 50 coins, seed added to inventory
-- [ ] Plant → plot shows emoji and countdown timer
+- [ ] Plant → plot shows a procedural seed icon and countdown timer
 - [ ] Wait for harvest (or use DEBUG_INSTANT_HARVEST) → harvest button appears
 - [ ] Harvest → coins added, plot clears
 - [ ] Upgrade Luck → level increments, stat updates in HUD

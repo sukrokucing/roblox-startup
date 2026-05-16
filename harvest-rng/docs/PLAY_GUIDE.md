@@ -87,8 +87,8 @@ For a first-session route, see [NEW_PLAYER_WALKTHROUGH.md](NEW_PLAYER_WALKTHROUG
 
 | Step | Action |
 |------|--------|
-| 1️⃣ | **Roll** — Click "Roll" (50 coins) or "Roll ×10" (450 coins) to get random seeds. New seeds are added to Inventory immediately. |
-| 2️⃣ | **Plant** — Click "Plant 🌱" on an empty plot → pick a seed from the modal; the matching 3D plot shows a small centered crop marker while it grows |
+| 1️⃣ | **Roll** — Click "Roll" (50 coins) or "Roll ×10" (450 coins) to get random seeds. New seeds are added to Inventory immediately, with a color-coded procedural crop icon for each seed. |
+| 2️⃣ | **Plant** — Click "Plant" on an empty plot → pick a seed from the modal; the matching 3D plot shows a small centered crop marker while it grows |
 | 3️⃣ | **Wait** — Timer counts down on each plot (Common = 30s, Mythic = up to 4h) |
 | 4️⃣ | **Harvest** — Click "Harvest" when plot shows ✅ Ready! → coins pop up |
 | 5️⃣ | **Hide/Show Farm** — The farm grid is docked on the right side so the center view stays clear. Click **Hide** when you want maximum camera space, then **Show** to bring the grid back. |

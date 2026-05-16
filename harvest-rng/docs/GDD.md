@@ -119,14 +119,16 @@ The effect is meaningful but never game-breaking — a high-luck player still ro
 
 ### 4.3 Seed pool (30 seeds)
 
+In-game seed cards use Roblox-safe procedural icons from `SeedData.icon` instead of raw emoji glyphs. Each icon combines a color-coded crop silhouette with a short label so every seed remains readable even when Roblox does not support a newer emoji.
+
 | Tier | Seeds |
 |------|-------|
-| Common    | Wheat 🌾, Carrot 🥕, Potato 🥔, Corn 🌽, Tomato 🍅 |
-| Uncommon  | Sunflower 🌻, Pumpkin 🎃, Watermelon 🍉, Eggplant 🍆, Strawberry 🍓 |
-| Rare      | Blueberry 🫐, Cherry 🍒, Mango 🥭, Kiwi 🥝, Lemon Tree 🍋 |
-| Epic      | Dragon Fruit 🐉, Rainbow Melon 🌈, Starfruit ⭐, Moonfruit 🌙, Phantom Pepper 👻 |
-| Legendary | Golden Apple 🍎, Celestial Pear ✨, Solar Bloom ☀️, Ancient Oak Fruit 🌳, Prism Grape 💎 |
-| Mythic    | Void Crystal 🔮, Nebula Bloom 🌌, Eternal Lotus 🪷, Dragon Heart Fruit ❤️‍🔥, Genesis Seed 🌠 |
+| Common    | Wheat, Carrot, Potato, Corn, Tomato |
+| Uncommon  | Sunflower, Pumpkin, Watermelon, Eggplant, Strawberry |
+| Rare      | Blueberry, Cherry, Mango, Kiwi, Lemon Tree |
+| Epic      | Dragon Fruit, Rainbow Melon, Starfruit, Moonfruit, Phantom Pepper |
+| Legendary | Golden Apple, Celestial Pear, Solar Bloom, Ancient Oak Fruit, Prism Grape |
+| Mythic    | Void Crystal, Nebula Bloom, Eternal Lotus, Dragon Heart Fruit, Genesis Seed |
 
 ### 4.4 Roll animations
 

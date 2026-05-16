@@ -105,9 +105,147 @@ local function FormatNumber(n: number): string
     return tostring(n)
 end
 
+local SEED_ICON_LAYER = "SeedIconLayer"
+
+local function AddIconPart(parent: Instance, name: string, position: UDim2, size: UDim2, color: Color3, radius: number, zIndex: number): Frame
+    local part = Instance.new("Frame")
+    part.Name = name
+    part.Position = position
+    part.Size = size
+    part.BackgroundColor3 = color
+    part.BorderSizePixel = 0
+    part.ZIndex = zIndex
+    part.Parent = parent
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius)
+    corner.Parent = part
+
+    return part
+end
+
+local function AddIconLabel(parent: Instance, text: string, zIndex: number)
+    local label = Instance.new("TextLabel")
+    label.Name = "Label"
+    label.Size = UDim2.new(1, -4, 0, 16)
+    label.Position = UDim2.new(0, 2, 1, -17)
+    label.BackgroundColor3 = Color3.fromRGB(10, 12, 18)
+    label.BackgroundTransparency = 0.15
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextStrokeTransparency = 0.55
+    label.Font = Enum.Font.GothamBold
+    label.TextScaled = true
+    label.ZIndex = zIndex
+    label.Parent = parent
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 5)
+    corner.Parent = label
+end
+
 -- ── Public API ────────────────────────────────────────────────
 
 local UIManager = {}
+
+function UIManager.ClearSeedIcon(holder: GuiObject)
+    for _, child in holder:GetChildren() do
+        if child.Name == SEED_ICON_LAYER then
+            child:Destroy()
+        end
+    end
+
+    if holder:IsA("TextLabel") or holder:IsA("TextButton") then
+        holder.Text = ""
+    end
+end
+
+function UIManager.RenderSeedIcon(holder: GuiObject, icon: any?, fallbackText: string?, zIndex: number?)
+    UIManager.ClearSeedIcon(holder)
+
+    local layerZ = zIndex or holder.ZIndex + 1
+    local primary = if icon and icon.primary then icon.primary else Color3.fromRGB(95, 190, 85)
+    local secondary = if icon and icon.secondary then icon.secondary else Color3.fromRGB(235, 235, 235)
+    local shape = if icon and icon.shape then icon.shape else "seed"
+    local labelText = if icon and icon.label then icon.label else (fallbackText or "SEED")
+
+    local root = Instance.new("Frame")
+    root.Name = SEED_ICON_LAYER
+    root.Size = UDim2.fromScale(1, 1)
+    root.BackgroundTransparency = 1
+    root.ClipsDescendants = false
+    root.ZIndex = layerZ
+    root.Parent = holder
+
+    local base = AddIconPart(root, "Base", UDim2.fromScale(0.16, 0.12), UDim2.fromScale(0.68, 0.68), primary, 999, layerZ)
+
+    if shape == "root" then
+        base.Size = UDim2.fromScale(0.42, 0.64)
+        base.Position = UDim2.fromScale(0.3, 0.16)
+        base.Rotation = -12
+        AddIconPart(root, "Leaf", UDim2.fromScale(0.22, 0.03), UDim2.fromScale(0.54, 0.22), secondary, 999, layerZ + 1)
+    elseif shape == "tuber" then
+        base.Size = UDim2.fromScale(0.7, 0.52)
+        base.Position = UDim2.fromScale(0.15, 0.18)
+        base.Rotation = -8
+        AddIconPart(root, "SpotA", UDim2.fromScale(0.3, 0.34), UDim2.fromScale(0.12, 0.1), secondary, 999, layerZ + 1)
+        AddIconPart(root, "SpotB", UDim2.fromScale(0.55, 0.25), UDim2.fromScale(0.1, 0.09), secondary, 999, layerZ + 1)
+    elseif shape == "grain" or shape == "cob" then
+        base.Size = UDim2.fromScale(0.34, 0.68)
+        base.Position = UDim2.fromScale(0.33, 0.1)
+        AddIconPart(root, "Stripe", UDim2.fromScale(0.47, 0.14), UDim2.fromScale(0.08, 0.56), secondary, 999, layerZ + 1)
+    elseif shape == "berry_cluster" or shape == "grape" then
+        base.BackgroundTransparency = 1
+        AddIconPart(root, "BerryA", UDim2.fromScale(0.24, 0.22), UDim2.fromScale(0.28, 0.28), primary, 999, layerZ)
+        AddIconPart(root, "BerryB", UDim2.fromScale(0.48, 0.22), UDim2.fromScale(0.28, 0.28), secondary, 999, layerZ)
+        AddIconPart(root, "BerryC", UDim2.fromScale(0.36, 0.44), UDim2.fromScale(0.28, 0.28), primary, 999, layerZ)
+    elseif shape == "berry_pair" then
+        base.BackgroundTransparency = 1
+        AddIconPart(root, "FruitA", UDim2.fromScale(0.24, 0.32), UDim2.fromScale(0.3, 0.3), primary, 999, layerZ)
+        AddIconPart(root, "FruitB", UDim2.fromScale(0.48, 0.32), UDim2.fromScale(0.3, 0.3), primary, 999, layerZ)
+        AddIconPart(root, "Stem", UDim2.fromScale(0.43, 0.12), UDim2.fromScale(0.14, 0.3), secondary, 2, layerZ + 1)
+    elseif shape == "flower" or shape == "sun" or shape == "lotus" then
+        base.Size = UDim2.fromScale(0.36, 0.36)
+        base.Position = UDim2.fromScale(0.32, 0.28)
+        for i = 1, 6 do
+            local petal = AddIconPart(root, "Petal" .. i, UDim2.fromScale(0.42, 0.08), UDim2.fromScale(0.16, 0.34), primary, 999, layerZ)
+            petal.Rotation = i * 30
+        end
+        base.BackgroundColor3 = secondary
+        base.ZIndex = layerZ + 1
+    elseif shape == "melon" or shape == "kiwi" then
+        base.Size = UDim2.fromScale(0.72, 0.48)
+        base.Position = UDim2.fromScale(0.14, 0.2)
+        AddIconPart(root, "Slice", UDim2.fromScale(0.22, 0.28), UDim2.fromScale(0.56, 0.24), secondary, 999, layerZ + 1)
+    elseif shape == "crystal" or shape == "prism" then
+        base.Size = UDim2.fromScale(0.48, 0.68)
+        base.Position = UDim2.fromScale(0.26, 0.1)
+        base.Rotation = 45
+        AddIconPart(root, "Facet", UDim2.fromScale(0.42, 0.2), UDim2.fromScale(0.18, 0.46), secondary, 4, layerZ + 1)
+    elseif shape == "rainbow" or shape == "nebula" then
+        local gradient = Instance.new("UIGradient")
+        gradient.Color = ColorSequence.new(primary, secondary)
+        gradient.Rotation = 35
+        gradient.Parent = base
+        AddIconPart(root, "Spark", UDim2.fromScale(0.56, 0.14), UDim2.fromScale(0.18, 0.18), Color3.fromRGB(255, 255, 255), 999, layerZ + 1)
+    elseif shape == "star" or shape == "moon" or shape == "heart" then
+        local symbol = Instance.new("TextLabel")
+        symbol.Name = "Symbol"
+        symbol.Size = UDim2.fromScale(1, 0.72)
+        symbol.BackgroundTransparency = 1
+        symbol.Text = if shape == "star" then "*" elseif shape == "moon" then "C" else "♥"
+        symbol.TextColor3 = primary
+        symbol.TextStrokeTransparency = 0.35
+        symbol.Font = Enum.Font.GothamBlack
+        symbol.TextScaled = true
+        symbol.ZIndex = layerZ + 1
+        symbol.Parent = root
+    else
+        AddIconPart(root, "Accent", UDim2.fromScale(0.55, 0.16), UDim2.fromScale(0.18, 0.18), secondary, 999, layerZ + 1)
+    end
+
+    AddIconLabel(root, labelText, layerZ + 2)
+end
 
 --- Updates the coin counter in the HUD.
 function UIManager.UpdateCoins(amount: number)
@@ -152,7 +290,7 @@ end
 
 --- Plays the roll-result reveal animation for a single result.
 --- Call sequentially for x10 roll, or show a summary panel instead.
-function UIManager.ShowRollResult(seedEmoji: string, seedNameStr: string, rarity: string)
+function UIManager.ShowRollResult(seedIcon: any?, seedNameStr: string, rarity: string)
     KillTweens()
 
     local color   = RarityColors[rarity] or RarityColors["Common"]
@@ -160,7 +298,7 @@ function UIManager.ShowRollResult(seedEmoji: string, seedNameStr: string, rarity
     -- Set initial hidden state
     ResultFrame.BackgroundColor3 = color
     ResultFrame.BackgroundTransparency = 1
-    SeedEmoji.Text    = seedEmoji
+    UIManager.RenderSeedIcon(SeedEmoji, seedIcon, "SEED", SeedEmoji.ZIndex + 1)
     SeedEmoji.TextColor3 = Color3.fromRGB(255, 255, 255)
     SeedEmoji.BackgroundTransparency = 1
     SeedEmoji.TextTransparency = 1
@@ -177,7 +315,7 @@ function UIManager.ShowRollResult(seedEmoji: string, seedNameStr: string, rarity
     -- Fade in background
     Tween(ResultFrame, fadeIn, { BackgroundTransparency = 0.35 })
 
-    -- Pop in emoji with scale
+    -- Pop in seed icon with scale
     SeedEmoji.Size = UDim2.fromOffset(48, 48)
     SeedEmoji.Position = UDim2.fromOffset(20, 18)
     Tween(SeedEmoji, bounce, {
@@ -339,8 +477,8 @@ function UIManager.ShowStreakBanner(day: number, coins: number, gems: number)
 end
 
 --- Renders the x10 roll summary list.
---- results: array of { seedName, emoji, rarity }
-function UIManager.ShowRollX10Summary(results: {{seedName: string, emoji: string, rarity: string}})
+--- results: array of { seedName, icon, rarity }
+function UIManager.ShowRollX10Summary(results: {{seedName: string, icon: any?, rarity: string}})
     -- For now, play the highest-rarity result as the hero card,
     -- then list the rest as a scrolling log.
     -- Full panel layout lives in Studio; this is the logic layer.
@@ -356,7 +494,7 @@ function UIManager.ShowRollX10Summary(results: {{seedName: string, emoji: string
         end
     end
 
-    UIManager.ShowRollResult(best.emoji, best.seedName, best.rarity)
+    UIManager.ShowRollResult(best.icon, best.seedName, best.rarity)
 end
 
 --- Returns the Color3 for a rarity string.

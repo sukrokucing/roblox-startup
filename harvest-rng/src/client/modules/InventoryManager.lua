@@ -126,8 +126,9 @@ function InventoryManager.OpenPicker(
 
         local emoji = Instance.new("TextLabel")
         emoji.Size = UDim2.fromOffset(44,44); emoji.Position = UDim2.fromOffset(5,5)
-        emoji.BackgroundTransparency = 1; emoji.Text = e.def.emoji
+        emoji.BackgroundTransparency = 1; emoji.Text = ""
         emoji.TextScaled = true; emoji.ZIndex = 34; emoji.Parent = row
+        UIManager.RenderSeedIcon(emoji, e.def.icon, e.def.name, 35)
 
         local nameL = Instance.new("TextLabel")
         nameL.Size = UDim2.new(0.48,0,0.5,0); nameL.Position = UDim2.fromOffset(53,3)

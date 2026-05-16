@@ -2,7 +2,7 @@
 
 > Roll random seeds. Plant. Grow. Harvest. Flex your luck.
 
-**Harvest RNG** is a Roblox idle/incremental farming simulator built around gacha RNG mechanics. Players roll seeds from a pool of 30 varieties across six rarity tiers — Common through Mythic — then plant, grow, and harvest them for coins to roll again. The higher your Luck stat, the better your odds. Think *Pet Simulator X* meets *Stardew Valley* meets a slot machine.
+**Harvest RNG** is a Roblox idle/incremental farming simulator built around gacha RNG mechanics. Players roll seeds from a pool of 30 varieties across six rarity tiers — Common through Mythic — then plant, grow, and harvest them for coins to roll again. The higher your Luck stat, the better your odds. Seed cards use procedural crop icons so they stay recognizable in Roblox even when newer emoji glyphs are unsupported. Think *Pet Simulator X* meets *Stardew Valley* meets a slot machine.
 
 ---
 
@@ -185,7 +185,7 @@ Rolls add seed IDs to server inventory and immediately send `InventoryUpdate` so
 - Planting consumes one inventory seed and immediately refreshes the client inventory snapshot.
 - Plot unlock purchases are saved immediately after server validation.
 - The farm panel is compact and right-docked, with a collapsible `Show` control so players can move without the plot grid blocking the camera.
-- The 3D farm plots mirror each player's local plot state, hiding lock markers as plots unlock and showing centered crop markers while seeds grow.
+- The 3D farm plots mirror each player's local plot state, hiding lock markers as plots unlock and showing centered procedural crop markers while seeds grow.
 - All validation runs server-side — clients cannot fake harvest readiness.
 
 ### Monetization
@@ -270,7 +270,13 @@ fix/xyz       ← bug fix branches (from dev or main for hotfixes)
    SeedData["my_seed"] = {
        id          = "my_seed",
        name        = "My Seed",
-       emoji       = "🌿",             -- use Roblox-safe glyphs; newer emoji may render as boxes
+       emoji       = "🌿",             -- legacy fallback only; UI uses icon metadata
+       icon        = {
+           shape = "seed",
+           label = "MY",
+           primary = Color3.fromRGB(80, 190, 90),
+           secondary = Color3.fromRGB(235, 235, 180),
+       },
        rarity      = "Rare",         -- must be a valid rarity tier
        baseValue   = 500,
        harvestTime = 240,
