@@ -2,14 +2,27 @@
 
 ## Quick Setup with Rojo (Recommended)
 
+### One-time Rokit install
+
+```powershell
+Invoke-RestMethod https://raw.githubusercontent.com/rojo-rbx/rokit/main/scripts/install.ps1 | Invoke-Expression
+```
+
+Open a new terminal after installing Rokit so `rokit` is available on your PATH.
+
+### Start Rojo sync
+
 ```bash
-# Prerequisites: Roblox Studio + Rojo plugin (rojo.space) + Node.js
-npm install -g rojo
 cd harvest-rng
+rokit trust rojo-rbx/rojo
+rokit install
+rojo plugin install
 rojo serve default.project.json
 ```
 
-Then in Roblox Studio: open the Rojo plugin panel → **Connect**.  
+If you already have Rojo installed, `rojo --version` should report Rojo 7.x. The project pins Rojo in `rokit.toml`, so `rokit install` is the repeatable setup command for this repo.
+
+Then in Roblox Studio: open the Rojo plugin panel → **Connect**.
 All files sync automatically on save. Press **Play** (F5) to test.
 
 ---

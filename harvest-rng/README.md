@@ -26,6 +26,8 @@ COINS → ROLL (RNG) → SEED → PLANT PLOT → WAIT → HARVEST → COINS
 ```
 harvest-rng/
 ├── README.md                          ← You are here
+├── default.project.json                ← Rojo 7 project mapping
+├── rokit.toml                          ← Rokit tool manifest (pins Rojo)
 ├── docs/
 │   ├── GDD.md                         ← Full Game Design Document
 │   ├── TECHNICAL_SPEC.md              ← Architecture & data schema
@@ -43,21 +45,23 @@ harvest-rng/
     │   └── modules/
     │       ├── UIManager.lua          ← All UI updates and animations
     │       └── InventoryManager.lua   ← Client-side inventory display and management
-    └── shared/
-        ├── SeedData.lua               ← 30 seed definitions (both sides)
-        ├── RemoteEvents.lua           ← Remote event name constants
-        └── Config.lua                 ← All game constants
+    ├── shared/
+    │   ├── SeedData.lua               ← 30 seed definitions (both sides)
+    │   ├── RemoteEvents.lua           ← Remote event name constants
+    │   └── Config.lua                 ← All game constants
+    └── studio/
+        └── BuildGUI.lua               ← Studio command-bar GUI builder
 ```
 
 ### Roblox service placement
 
 | File | Roblox service |
 |------|---------------|
-| `src/server/GameManager.server.lua` | `ServerScriptService/src/server/` |
-| `src/server/modules/*.lua` | `ServerScriptService/src/server/modules/` |
-| `src/client/MainClient.client.lua` | `StarterPlayerScripts/src/client/` |
-| `src/client/modules/UIManager.lua` | `StarterPlayerScripts/src/client/modules/` |
-| `src/client/modules/InventoryManager.lua` | `StarterPlayerScripts/src/client/modules/` |
+| `src/server/GameManager.server.lua` | `ServerScriptService/GameManager` |
+| `src/server/modules/*.lua` | `ServerScriptService/modules/` |
+| `src/client/MainClient.client.lua` | `StarterPlayerScripts/MainClient` |
+| `src/client/modules/UIManager.lua` | `StarterPlayerScripts/modules/UIManager` |
+| `src/client/modules/InventoryManager.lua` | `StarterPlayerScripts/modules/InventoryManager` |
 | `src/shared/*.lua` | `ReplicatedStorage/Shared/` |
 
 ---
@@ -68,7 +72,7 @@ harvest-rng/
 
 - [Roblox Studio](https://www.roblox.com/create) (latest version)
 - A Roblox account with Creator Hub access
-- (Optional) [Rojo](https://rojo.space/) for file-sync workflow
+- (Optional) [Rokit](https://github.com/rojo-rbx/rokit) + [Rojo](https://rojo.space/) 7.x for file-sync workflow
 
 ### Option A — Manual import (Studio only)
 
@@ -82,37 +86,63 @@ harvest-rng/
 
 ### Option B — Rojo sync (recommended for teams)
 
-1. Install Rojo: `aftman install` or `cargo install rojo`
-2. Create a `default.project.json` mapping `src/` to the correct Roblox services (see example below).
-3. Run `rojo serve` in this directory.
-4. In Studio, install the [Rojo plugin](https://create.roblox.com/marketplace/asset/13916111238) and click **Connect**.
+1. Install Rokit if it is not already available:
+   ```powershell
+   Invoke-RestMethod https://raw.githubusercontent.com/rojo-rbx/rokit/main/scripts/install.ps1 | Invoke-Expression
+   ```
+2. Open a new terminal so `rokit` is available on your PATH.
+3. Install the project-pinned Rojo tool:
+   ```bash
+   cd harvest-rng
+   rokit trust rojo-rbx/rojo
+   rokit install
+   ```
+4. Install or update the Studio plugin: `rojo plugin install`.
+5. Run `rojo serve default.project.json` from the `harvest-rng/` directory.
+6. In Studio, open the Rojo plugin and click **Connect**.
+
+The repo pins Rojo in `rokit.toml`, so `rokit install` is the repeatable setup command. If you prefer another installer, Rojo also publishes GitHub release binaries and supports `cargo install rojo --version ^7`. Avoid `npm install -g rojo`; the npm wrapper is deprecated.
 
 #### Example `default.project.json`
 
 ```json
 {
-  "name": "harvest-rng",
+  "name": "HarvestRNG",
   "tree": {
     "$className": "DataModel",
     "ServerScriptService": {
       "$className": "ServerScriptService",
-      "src": {
-        "$path": "src/server"
+      "GameManager": {
+        "$path": "src/server/GameManager.server.lua"
+      },
+      "modules": {
+        "$className": "Folder",
+        "DataManager": { "$path": "src/server/modules/DataManager.lua" },
+        "RNGManager": { "$path": "src/server/modules/RNGManager.lua" },
+        "FarmManager": { "$path": "src/server/modules/FarmManager.lua" }
+      }
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$className": "Folder",
+        "Config": { "$path": "src/shared/Config.lua" },
+        "RemoteEvents": { "$path": "src/shared/RemoteEvents.lua" },
+        "SeedData": { "$path": "src/shared/SeedData.lua" }
       }
     },
     "StarterPlayer": {
       "$className": "StarterPlayer",
       "StarterPlayerScripts": {
         "$className": "StarterPlayerScripts",
-        "src": {
-          "$path": "src/client"
+        "MainClient": {
+          "$path": "src/client/MainClient.client.lua"
+        },
+        "modules": {
+          "$className": "Folder",
+          "UIManager": { "$path": "src/client/modules/UIManager.lua" },
+          "InventoryManager": { "$path": "src/client/modules/InventoryManager.lua" }
         }
-      }
-    },
-    "ReplicatedStorage": {
-      "$className": "ReplicatedStorage",
-      "Shared": {
-        "$path": "src/shared"
       }
     }
   }
