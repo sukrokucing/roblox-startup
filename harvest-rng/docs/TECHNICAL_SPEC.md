@@ -240,11 +240,11 @@ All remotes live in `ReplicatedStorage/Events` (RemoteEvents) and `ReplicatedSto
 
 | Event name | Payload | Server action |
 |------------|---------|--------------|
-| `RequestRoll` | (none) | Deduct 50 coins, roll 1 seed, add to inventory, fire `RollResult` |
-| `RequestRollX10` | (none) | Deduct 450 coins, roll 10 seeds, fire `RollResult` with array |
-| `RequestPlant` | `plotIndex: number, seedId: string` | Validate ownership, plant seed, fire `PlotStateUpdate` |
+| `RequestRoll` | (none) | Deduct 50 coins, roll 1 seed, add to inventory, fire `RollResult` + `InventoryUpdate` |
+| `RequestRollX10` | (none) | Deduct 450 coins, roll 10 seeds, add to inventory, fire `RollResult` + `InventoryUpdate` |
+| `RequestPlant` | `plotIndex: number, seedId: string` | Validate ownership, plant seed, fire `InventoryUpdate` + `PlotStateUpdate` |
 | `RequestHarvest` | `plotIndex: number` | Validate ready, add coins, clear plot, fire `HarvestResult` + `StatsUpdate` |
-| `RequestUnlockPlot` | `plotIndex: number` | Validate cost, unlock, fire `StatsUpdate` + `PlotStateUpdate` |
+| `RequestUnlockPlot` | `plotIndex: number` | Validate cost, unlock, save immediately, fire `StatsUpdate` + `PlotStateUpdate` |
 | `RequestUpgradeLuck` | (none) | Validate cost, increment level/stat, fire `UpgradeResult` + `StatsUpdate` |
 | `RequestUpgradeHarvestSpeed` | (none) | Validate cost, update multiplier, fire `UpgradeResult` + `StatsUpdate` |
 | `RequestClaimStreak` | (none) | Re-run daily streak logic, fire `DailyStreakClaimed` if applicable |
@@ -262,7 +262,7 @@ All remotes live in `ReplicatedStorage/Events` (RemoteEvents) and `ReplicatedSto
 | `HarvestResult` | `{plotIndex, coins, seedName, rarity}` | Floating +coins popup |
 | `UpgradeResult` | `{stat, newValue, newLevel}` | Toast notification |
 | `DailyStreakClaimed` | `{day, coins, gems}` | Streak banner modal |
-| `InventoryUpdate` | `{inventory: {[string]: number}}` | Inventory panel refresh |
+| `InventoryUpdate` | `{inventory: {[string]: number}}` | Inventory panel refresh after rolls, plant attempts, or explicit requests |
 | `LeaderboardData` | `{rank, name, value}[]` | Leaderboard panel rows |
 | `Notification` | `{message, style?}` | Toast notification |
 
@@ -300,6 +300,8 @@ LOCKED ──────────────────────► EMP
 - A plot cannot be planted while GROWING (must harvest first).
 - Harvest is a no-op if the plot is EMPTY or LOCKED.
 - `plantedAt` is always set as `os.time()` on the server (never client timestamp).
+- Plot unlock purchases call `DataManager.Save()` immediately after success so expansion progress survives short Studio sessions.
+- `PlotStateUpdate` drives both the ScreenGui plot grid and local 3D plot visuals under `Workspace.HarvestRNG_World.WorldPlots_5x5`, including unlock markers and centered planted crop billboards.
 
 ---
 
@@ -431,14 +433,18 @@ HarvestRNG_GUI (ScreenGui, ResetOnSpawn = false)
 │       ├── SeedEmoji  (TextLabel)
 │       ├── SeedName   (TextLabel)
 │       └── RarityLabel (TextLabel)
-├── FarmPanel (Frame)
-│   └── PlotContainer (Frame, UIGridLayout inside)
+├── FarmPanel (Frame, compact right-docked panel)
+│   ├── ToggleFarmButton (TextButton, "Hide" / "Show")
+│   └── PlotContainer (ScrollingFrame, UIGridLayout inside; hidden when panel is collapsed)
 ├── InventoryPanel (Frame, Visible=false)
-│   └── ScrollFrame (ScrollingFrame)
+│   ├── CloseBtn (TextButton)
+│   └── ScrollFrame (ScrollingFrame; rendered with seed rows from `InventoryUpdate`)
 ├── UpgradePanel (Frame, Visible=false)
 │   ├── LuckUpgradeButton   (TextButton)
-│   └── SpeedUpgradeButton  (TextButton)
+│   ├── SpeedUpgradeButton  (TextButton)
+│   └── CloseBtn (TextButton)
 ├── LeaderboardPanel (Frame, Visible=false)
+│   ├── CloseBtn (TextButton)
 │   └── ScrollFrame (ScrollingFrame)
 └── NotificationFrame (Frame, Visible=false, anchored bottom-center)
     └── NotifLabel (TextLabel)

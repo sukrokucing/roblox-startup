@@ -72,7 +72,7 @@ function InventoryManager.OpenPicker(
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.fromOffset(28,28); closeBtn.Position = UDim2.new(1,-36,0,8)
     closeBtn.BackgroundColor3 = Color3.fromRGB(180,50,50)
-    closeBtn.Text = "✕"; closeBtn.TextColor3 = Color3.new(1,1,1)
+    closeBtn.Text = "X"; closeBtn.TextColor3 = Color3.new(1,1,1)
     closeBtn.Font = Enum.Font.GothamBold; closeBtn.TextScaled = true
     closeBtn.ZIndex = 32; closeBtn.Parent = modal
     local cc = Instance.new("UICorner"); cc.CornerRadius = UDim.new(0,6); cc.Parent = closeBtn

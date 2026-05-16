@@ -167,6 +167,7 @@ Seed rolls use a weighted random algorithm. Base weights:
 | Mythic | 0.5 % |
 
 Each point of Luck shifts `0.08 %` weight from Common toward rarer tiers. Max luck (100) roughly doubles Mythic chance to ~0.9 %.
+Rolls add seed IDs to server inventory and immediately send `InventoryUpdate` so the Inventory panel reflects new seeds.
 
 ### DataStore (`DataManager.lua`)
 
@@ -181,6 +182,10 @@ Each point of Luck shifts `0.08 %` weight from Common toward rarer tiers. Max lu
 - Plot states: `LOCKED → EMPTY → GROWING → READY → EMPTY`
 - Harvest timing: `seed.harvestTime × rarityModifier ÷ harvestSpeedMultiplier`
 - Harvest value: `seed.baseValue × rarityMultiplier × (1 + luck/200)`
+- Planting consumes one inventory seed and immediately refreshes the client inventory snapshot.
+- Plot unlock purchases are saved immediately after server validation.
+- The farm panel is compact and right-docked, with a collapsible `Show` control so players can move without the plot grid blocking the camera.
+- The 3D farm plots mirror each player's local plot state, hiding lock markers as plots unlock and showing centered crop markers while seeds grow.
 - All validation runs server-side — clients cannot fake harvest readiness.
 
 ### Monetization
@@ -265,7 +270,7 @@ fix/xyz       ← bug fix branches (from dev or main for hotfixes)
    SeedData["my_seed"] = {
        id          = "my_seed",
        name        = "My Seed",
-       emoji       = "🌿",
+       emoji       = "🌿",             -- use Roblox-safe glyphs; newer emoji may render as boxes
        rarity      = "Rare",         -- must be a valid rarity tier
        baseValue   = 500,
        harvestTime = 240,

@@ -112,6 +112,12 @@ local function SendPlotUpdate(player: Player)
     end
 end
 
+local function SendInventoryUpdate(player: Player)
+    local data = DataManager.GetData(player)
+    if not data then return end
+    RE[RemoteEvents.Names.InventoryUpdate]:FireClient(player, { inventory = data.inventory })
+end
+
 local function HandleDailyStreak(player: Player)
     local data = DataManager.GetData(player)
     if not data then return end
@@ -283,6 +289,7 @@ RE[RemoteEvents.Names.RequestRoll].OnServerEvent:Connect(function(player)
     DataManager.MarkDirty(player)
 
     RE[RemoteEvents.Names.RollResult]:FireClient(player, { result })
+    SendInventoryUpdate(player)
     SendStatsUpdate(player)
 end)
 
@@ -318,6 +325,7 @@ RE[RemoteEvents.Names.RequestRollX10].OnServerEvent:Connect(function(player)
     DataManager.MarkDirty(player)
 
     RE[RemoteEvents.Names.RollResult]:FireClient(player, results)
+    SendInventoryUpdate(player)
     SendStatsUpdate(player)
 end)
 
@@ -334,9 +342,11 @@ RE[RemoteEvents.Names.RequestPlant].OnServerEvent:Connect(function(player, plotI
     if plotIndex ~= plotIndex then return end  -- NaN guard
     local result = FarmManager.PlantSeed(player, plotIndex, seedId)
     if result.success then
+        SendInventoryUpdate(player)
         SendPlotUpdate(player)
         SendStatsUpdate(player)
     else
+        SendInventoryUpdate(player)
         RE[RemoteEvents.Names.Notification]:FireClient(player, {
             message = result.reason or "Cannot plant.",
             style   = "error",
@@ -384,6 +394,10 @@ RE[RemoteEvents.Names.RequestUnlockPlot].OnServerEvent:Connect(function(player, 
     if plotIndex ~= plotIndex then return end  -- NaN guard
     local result = FarmManager.UnlockPlot(player, plotIndex)
     if result.success then
+        local saved = DataManager.Save(player)
+        if not saved then
+            warn(string.format("[GameManager] Failed to save plot unlock for %s plot %d", player.Name, plotIndex))
+        end
         SendStatsUpdate(player)
         SendPlotUpdate(player)
     else
@@ -469,9 +483,7 @@ end)
 
 -- Inventory request
 RE[RemoteEvents.Names.RequestInventory].OnServerEvent:Connect(function(player)
-    local data = DataManager.GetData(player)
-    if not data then return end
-    RE[RemoteEvents.Names.InventoryUpdate]:FireClient(player, { inventory = data.inventory })
+    SendInventoryUpdate(player)
 end)
 
 -- Daily streak claim (manual button)

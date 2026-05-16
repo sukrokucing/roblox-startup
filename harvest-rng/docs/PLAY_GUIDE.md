@@ -87,13 +87,14 @@ For a first-session route, see [NEW_PLAYER_WALKTHROUGH.md](NEW_PLAYER_WALKTHROUG
 
 | Step | Action |
 |------|--------|
-| 1️⃣ | **Roll** — Click "Roll" (50 coins) or "Roll ×10" (450 coins) to get random seeds |
-| 2️⃣ | **Plant** — Click "Plant 🌱" on an empty plot → pick a seed from the modal |
+| 1️⃣ | **Roll** — Click "Roll" (50 coins) or "Roll ×10" (450 coins) to get random seeds. New seeds are added to Inventory immediately. |
+| 2️⃣ | **Plant** — Click "Plant 🌱" on an empty plot → pick a seed from the modal; the matching 3D plot shows a small centered crop marker while it grows |
 | 3️⃣ | **Wait** — Timer counts down on each plot (Common = 30s, Mythic = up to 4h) |
 | 4️⃣ | **Harvest** — Click "Harvest" when plot shows ✅ Ready! → coins pop up |
-| 5️⃣ | **Upgrade** — Spend coins on Luck (better RNG) or Harvest Speed (faster grows) |
-| 6️⃣ | **Unlock Plots** — Click 🔒 on a locked plot to buy it with coins |
-| 7️⃣ | **Repeat** — Roll more seeds, flex rare finds on the leaderboard |
+| 5️⃣ | **Hide/Show Farm** — The farm grid is docked on the right side so the center view stays clear. Click **Hide** when you want maximum camera space, then **Show** to bring the grid back. |
+| 6️⃣ | **Upgrade** — Spend coins on Luck (better RNG) or Harvest Speed (faster grows). Upgrade buttons show the next scaled coin cost for your current level. |
+| 7️⃣ | **Unlock Plots** — Click 🔒 on a locked plot to buy it with coins; the unlock is saved immediately and the matching 3D plot sheds its lock marker |
+| 8️⃣ | **Repeat** — Roll more seeds, flex rare finds on the leaderboard |
 
 ---
 
@@ -140,3 +141,6 @@ Config.GAMEPASS_IDS = {
 | `attempt to index nil (Events)` | Server started before GUI — wait for server to fully init |
 | DataStore errors in Studio | Normal in Studio; works on live server with published place |
 | Plots don't show up | Check `PlotContainer` is a ScrollingFrame with UIGridLayout child |
+| Picker shows a seed but planting says you don't have it | Reopen the picker after the toast; the server now refreshes inventory after every plant attempt |
+| Leaderboard or Inventory covers the screen | Click the red **X** in the panel corner or click the matching HUD button again |
+| Inventory looks empty after rolling | Stop/Play after updating; rolls now push `InventoryUpdate` and the Inventory panel renders seed rows |

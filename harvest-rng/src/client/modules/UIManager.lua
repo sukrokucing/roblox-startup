@@ -20,6 +20,7 @@
 --       │     ├─ SeedName   (TextLabel)
 --       │     └─ RarityLabel (TextLabel)
 --       ├─ FarmPanel (Frame)
+--       │  ├─ ToggleFarmButton (TextButton)
 --       │  └─ PlotContainer (Frame — plots spawned dynamically)
 --       ├─ InventoryPanel (Frame, Visible=false)
 --       │  └─ ScrollFrame
@@ -27,6 +28,7 @@
 --       │  ├─ LuckUpgradeButton   (TextButton)
 --       │  └─ SpeedUpgradeButton  (TextButton)
 --       ├─ LeaderboardPanel (Frame, Visible=false)
+--       │  └─ CloseBtn (TextButton)
 --       └─ NotificationFrame (Frame, Visible=false)
 --          └─ NotifLabel (TextLabel)
 -- ============================================================
@@ -159,12 +161,14 @@ function UIManager.ShowRollResult(seedEmoji: string, seedNameStr: string, rarity
     ResultFrame.BackgroundColor3 = color
     ResultFrame.BackgroundTransparency = 1
     SeedEmoji.Text    = seedEmoji
+    SeedEmoji.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SeedEmoji.BackgroundTransparency = 1
     SeedEmoji.TextTransparency = 1
     SeedName.Text     = seedNameStr
     SeedName.TextTransparency = 1
-    SeedName.TextColor3 = color
+    SeedName.TextColor3 = Color3.fromRGB(255, 255, 255)
     RarityLabel.Text  = rarity
-    RarityLabel.TextColor3 = RarityColors[rarity] or Color3.new(1, 1, 1)
+    RarityLabel.TextColor3 = Color3.fromRGB(235, 245, 255)
     RarityLabel.TextTransparency = 1
 
     local fadeIn = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
@@ -174,8 +178,13 @@ function UIManager.ShowRollResult(seedEmoji: string, seedNameStr: string, rarity
     Tween(ResultFrame, fadeIn, { BackgroundTransparency = 0.35 })
 
     -- Pop in emoji with scale
-    SeedEmoji.Size = UDim2.fromScale(0.2, 0.2)
-    Tween(SeedEmoji, bounce, { TextTransparency = 0, Size = UDim2.fromScale(0.25, 0.25) })
+    SeedEmoji.Size = UDim2.fromOffset(48, 48)
+    SeedEmoji.Position = UDim2.fromOffset(20, 18)
+    Tween(SeedEmoji, bounce, {
+        TextTransparency = 0,
+        Size = UDim2.fromOffset(64, 64),
+        Position = UDim2.fromOffset(12, 10),
+    })
 
     task.delay(0.2, function()
         Tween(SeedName, fadeIn, { TextTransparency = 0 })
