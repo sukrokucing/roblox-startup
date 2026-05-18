@@ -96,6 +96,18 @@ local function CalcHarvestSpeedUpgradeCost(currentLevel: number): number
     return math.floor(Config.HARVEST_SPEED_BASE_COST * (Config.HARVEST_SPEED_SCALE ^ currentLevel))
 end
 
+local function FormatCoins(amount: number): string
+    local formatted = tostring(math.floor(amount))
+    while true do
+        local nextFormatted, replacements = string.gsub(formatted, "^(-?%d+)(%d%d%d)", "%1,%2")
+        formatted = nextFormatted
+        if replacements == 0 then
+            break
+        end
+    end
+    return formatted
+end
+
 local function SendStatsUpdate(player: Player)
     local data = DataManager.GetData(player)
     if not data then return end
@@ -345,7 +357,7 @@ local function OnPlayerAdded(player: Player)
                     SendStatsUpdate(player)
                     SendPlotUpdate(player)
                     RE[RemoteEvents.Names.Notification]:FireClient(player, {
-                        message = string.format("🤖 Auto-Farm collected %d coins!", earned),
+                        message = string.format("🤖 Auto-Farm collected %s coins!", FormatCoins(earned)),
                         style   = "info",
                     })
                 end
@@ -422,7 +434,7 @@ RE[RemoteEvents.Names.RequestRollX10].OnServerEvent:Connect(function(player)
     local cost = Config.ROLL_X10_COST_COINS
     if data.coins < cost then
         RE[RemoteEvents.Names.Notification]:FireClient(player, {
-            message = string.format("Need %d coins for x10 roll!", cost),
+            message = string.format("Need %s coins for x10 roll!", FormatCoins(cost)),
             style   = "error",
         })
         return
@@ -542,7 +554,7 @@ RE[RemoteEvents.Names.RequestUpgradeLuck].OnServerEvent:Connect(function(player)
     local cost = CalcLuckUpgradeCost(data.luckLevel)
     if data.coins < cost then
         RE[RemoteEvents.Names.Notification]:FireClient(player, {
-            message = string.format("Need %d coins for Luck upgrade.", cost),
+            message = string.format("Need %s coins for Luck upgrade.", FormatCoins(cost)),
             style   = "error",
         })
         return
@@ -578,7 +590,7 @@ RE[RemoteEvents.Names.RequestUpgradeHarvestSpeed].OnServerEvent:Connect(function
     local cost = CalcHarvestSpeedUpgradeCost(data.harvestSpeedLevel)
     if data.coins < cost then
         RE[RemoteEvents.Names.Notification]:FireClient(player, {
-            message = string.format("Need %d coins for Harvest Speed upgrade.", cost),
+            message = string.format("Need %s coins for Harvest Speed upgrade.", FormatCoins(cost)),
             style   = "error",
         })
         return

@@ -265,7 +265,7 @@ All remotes live in `ReplicatedStorage/Events` (RemoteEvents) and `ReplicatedSto
 | `DailyStreakClaimed` | `{day, coins, gems}` | Streak banner modal |
 | `InventoryUpdate` | `{inventory: {[string]: number}}` | Inventory panel refresh after rolls, plant attempts, or explicit requests |
 | `LeaderboardData` | `{rank, name, value}[]` | Leaderboard panel rows; empty array renders a "No harvests yet" row client-side |
-| `Notification` | `{message, style?}` | Toast notification |
+| `Notification` | `{message, style?}` | Toast notification; server-generated coin amounts use comma separators |
 
 ### Client → Server (RemoteFunctions)
 
@@ -451,7 +451,7 @@ HarvestRNG_GUI (ScreenGui, ResetOnSpawn = false)
     └── NotifLabel (TextLabel)
 ```
 
-`MainClient.client.lua` re-applies responsive layout when `HarvestRNG_GUI.AbsoluteSize` changes. Touch/small viewports use abbreviated HUD stats, smaller roll/farm panels, and centered modal panels so phone landscape does not overflow or cover core gameplay controls.
+`MainClient.client.lua` re-applies responsive layout when `HarvestRNG_GUI.AbsoluteSize` changes. Touch/small viewports use abbreviated HUD stats, a top-left roll panel outside the mobile thumbstick zone, smaller farm panels, and centered modal panels so phone landscape does not overflow or cover core gameplay controls.
 
 ### Step 3: Fill in Gamepass IDs
 

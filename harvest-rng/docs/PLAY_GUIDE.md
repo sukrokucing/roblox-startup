@@ -93,7 +93,7 @@ For a first-session route, see [NEW_PLAYER_WALKTHROUGH.md](NEW_PLAYER_WALKTHROUG
 | 4️⃣ | **Harvest** — Click "Harvest" when plot shows ✅ Ready! → coins pop up |
 | 5️⃣ | **Show/Hide Farm** — The farm grid starts collapsed on the right side so the center view stays clear. Click **Show** to open the grid, then **Hide** when you want maximum camera space again. |
 | 6️⃣ | **Upgrade** — Spend coins on Luck (better RNG) or Harvest Speed (faster grows). Upgrade buttons show the next scaled coin cost for your current level. |
-| 7️⃣ | **Unlock Plots** — Click 🔒 on a locked plot to buy it with coins; the unlock is saved immediately and the matching 3D plot sheds its lock marker |
+| 7️⃣ | **Unlock Plots** — Click 🔒 on a locked plot to buy it with coins; the unlock is saved immediately and large coin warnings use comma separators |
 | 8️⃣ | **Repeat** — Roll more seeds, flex harvest value on the leaderboard; online players' latest harvest totals show without waiting for the periodic global save |
 
 ---
@@ -143,5 +143,5 @@ Config.GAMEPASS_IDS = {
 | Plots don't show up | Check `PlotContainer` is a ScrollingFrame with UIGridLayout child |
 | Picker shows a seed but planting says you don't have it | Reopen the picker after the toast; the server now refreshes inventory after every plant attempt |
 | Leaderboard or Inventory covers the screen | Click the red **X** in the panel corner or click the matching HUD button again |
-| Mobile HUD text overlaps or gets cut off | Make sure `MainClient.client.lua` and `UIManager.lua` are updated; touch devices use the compact HUD and smaller roll/farm panels automatically |
+| Mobile HUD text overlaps, gets cut off, or blocks the thumbstick | Make sure `MainClient.client.lua` and `UIManager.lua` are updated; touch devices use the compact HUD and move the roll panel away from the bottom-left movement controls automatically |
 | Inventory looks empty after rolling | Stop/Play after updating; rolls now push `InventoryUpdate` and the Inventory panel renders seed rows |

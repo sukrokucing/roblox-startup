@@ -240,6 +240,7 @@ return ModuleName
 
 - Use `pcall` for any external API call (DataStore, MarketplaceService).
 - Log warnings with `warn("[ModuleName] ...")` for recoverable errors.
+- Format player-facing coin amounts with separators when messages show exact balances or costs.
 - Use `error(...)` / `assert(...)` only for programmer errors (wrong argument types).
 - Never `error()` inside a `PlayerAdded` handler — use graceful fallback.
 

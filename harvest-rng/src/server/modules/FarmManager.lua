@@ -51,6 +51,18 @@ local function GetPlot(player: Player, index: number): (DataManager.PlotState?, 
     return plot, data
 end
 
+local function FormatCoins(amount: number): string
+    local formatted = tostring(math.floor(amount))
+    while true do
+        local nextFormatted, replacements = string.gsub(formatted, "^(-?%d+)(%d%d%d)", "%1,%2")
+        formatted = nextFormatted
+        if replacements == 0 then
+            break
+        end
+    end
+    return formatted
+end
+
 -- ── Public API ────────────────────────────────────────────────
 
 local FarmManager = {}
@@ -189,7 +201,7 @@ function FarmManager.UnlockPlot(player: Player, plotIndex: number): UnlockResult
     if data.coins < cost then
         return {
             success    = false,
-            reason     = string.format("Need %d coins (have %d).", cost, data.coins),
+            reason     = string.format("Need %s coins (have %s).", FormatCoins(cost), FormatCoins(data.coins)),
             newBalance = data.coins,
         }
     end

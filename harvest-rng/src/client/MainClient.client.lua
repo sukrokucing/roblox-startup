@@ -291,7 +291,9 @@ local function ApplyInterfaceRefresh()
     local rollX10Y = if compactLayoutActive then 140 else 166
 
     RollPanel.Size = UDim2.fromOffset(rollPanelWidth, rollPanelHeight)
-    RollPanel.Position = UDim2.new(0, rollMargin, 1, -(rollPanelHeight + rollMargin))
+    RollPanel.Position = if compactLayoutActive
+        then UDim2.fromOffset(rollMargin, hudHeight + rollMargin)
+        else UDim2.new(0, rollMargin, 1, -(rollPanelHeight + rollMargin))
     local rollTitle = RollPanel:FindFirstChild("Title")
     if rollTitle and rollTitle:IsA("TextLabel") then
         rollTitle.Size = UDim2.new(1, -20, 0, rollTitleHeight)
