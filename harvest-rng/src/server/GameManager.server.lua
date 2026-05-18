@@ -56,6 +56,10 @@ DataManager.Init()
 -- FIX S-4: Persistent store for userId → displayName mapping used by leaderboard
 local playerNameStore: DataStore = game:GetService("DataStoreService")
     :GetDataStore("PlayerNames_v1")
+local playerNameCache: {[string]: string} = {}
+local leaderboardResponseCache: {{rank: number, name: string, value: number}} = {}
+local leaderboardResponseCacheAt = 0
+local LEADERBOARD_CACHE_TTL = 15
 
 -- ── 3a. Per-player cooldown tables (rate limiting) ────────────
 
@@ -70,6 +74,8 @@ local STREAK_COOLDOWN = 5                           -- minimum seconds between s
 -- FIX N-NEW-4: action cooldowns — prevent rapid-fire Plant/Harvest/Unlock/Upgrade spam
 local actionCooldowns: {[number]: number} = {}     -- userId → last action os.clock()
 local ACTION_COOLDOWN = 0.3                         -- minimum seconds between farm/upgrade actions
+local leaderboardCooldowns: {[number]: number} = {} -- userId → last leaderboard request os.clock()
+local LEADERBOARD_COOLDOWN = 2                      -- minimum seconds between leaderboard fetches
 
 -- ── 3. Helpers ────────────────────────────────────────────────
 
@@ -116,6 +122,116 @@ local function SendInventoryUpdate(player: Player)
     local data = DataManager.GetData(player)
     if not data then return end
     RE[RemoteEvents.Names.InventoryUpdate]:FireClient(player, { inventory = data.inventory })
+end
+
+local function CachePlayerName(player: Player): string
+    local displayName = if player.DisplayName ~= "" then player.DisplayName else player.Name
+    local key = tostring(player.UserId)
+    playerNameCache[key] = displayName
+    return displayName
+end
+
+local function ResolveLeaderboardName(userId: string): string
+    local cached = playerNameCache[userId]
+    if cached then return cached end
+
+    local nameOk, storedName = pcall(function()
+        return playerNameStore:GetAsync(userId)
+    end)
+    if nameOk and type(storedName) == "string" and storedName ~= "" then
+        playerNameCache[userId] = storedName
+        return storedName
+    end
+
+    local numericUserId = tonumber(userId)
+    if numericUserId then
+        local lookupOk, accountName = pcall(function()
+            return Players:GetNameFromUserIdAsync(numericUserId)
+        end)
+        if lookupOk and type(accountName) == "string" and accountName ~= "" then
+            playerNameCache[userId] = accountName
+            return accountName
+        end
+    end
+
+    return userId
+end
+
+local function SavePlayerLeaderboardValue(player: Player)
+    local data = DataManager.GetData(player)
+    if not data or data.totalHarvested <= 0 then return end
+
+    local leaderboardStore = game:GetService("DataStoreService")
+        :GetOrderedDataStore(Config.LEADERBOARD_KEY)
+    pcall(function()
+        leaderboardStore:SetAsync(tostring(player.UserId), data.totalHarvested)
+    end)
+end
+
+local function BuildLeaderboardEntries(): {{rank: number, name: string, value: number}}
+    local byUserId: {[string]: {name: string, value: number}} = {}
+    local leaderboardStore = game:GetService("DataStoreService")
+        :GetOrderedDataStore(Config.LEADERBOARD_KEY)
+
+    local ok, pages = pcall(function()
+        return leaderboardStore:GetSortedAsync(false, Config.LEADERBOARD_SIZE)
+    end)
+    if ok then
+        while true do
+            local page = pages:GetCurrentPage()
+            for _, entry in page do
+                local userId = tostring(entry.key)
+                byUserId[userId] = {
+                    name  = ResolveLeaderboardName(userId),
+                    value = tonumber(entry.value) or 0,
+                }
+            end
+            if pages.IsFinished then break end
+            local advOk = pcall(function() pages:AdvanceToNextPageAsync() end)
+            if not advOk then break end
+        end
+    end
+
+    -- Merge online totals so the panel works immediately after a harvest,
+    -- even before the next 5-minute OrderedDataStore write tick.
+    for _, onlinePlayer in Players:GetPlayers() do
+        local data = DataManager.GetData(onlinePlayer)
+        if data and data.totalHarvested > 0 then
+            local userId = tostring(onlinePlayer.UserId)
+            local current = byUserId[userId]
+            if not current or data.totalHarvested > current.value then
+                byUserId[userId] = {
+                    name  = CachePlayerName(onlinePlayer),
+                    value = data.totalHarvested,
+                }
+            end
+        end
+    end
+
+    local sorted: {{name: string, value: number}} = {}
+    for _, entry in byUserId do
+        if entry.value > 0 then
+            table.insert(sorted, entry)
+        end
+    end
+
+    table.sort(sorted, function(a, b)
+        if a.value == b.value then
+            return a.name < b.name
+        end
+        return a.value > b.value
+    end)
+
+    local entries: {{rank: number, name: string, value: number}} = {}
+    for index = 1, math.min(#sorted, Config.LEADERBOARD_SIZE) do
+        local entry = sorted[index]
+        table.insert(entries, {
+            rank = index,
+            name = entry.name,
+            value = entry.value,
+        })
+    end
+    return entries
 end
 
 local function HandleDailyStreak(player: Player)
@@ -202,10 +318,8 @@ local function OnPlayerAdded(player: Player)
 
     -- FIX S-4: Persist display name so leaderboard can show names instead of userIds
     task.spawn(function()
-        local ok, displayName = pcall(function()
-            return game:GetService("Players"):GetNameFromUserIdAsync(player.UserId)
-        end)
-        if ok and type(displayName) == "string" then
+        local displayName = CachePlayerName(player)
+        if type(displayName) == "string" then
             pcall(function()
                 playerNameStore:SetAsync(tostring(player.UserId), displayName)
             end)
@@ -254,6 +368,8 @@ Players.PlayerRemoving:Connect(function(player: Player)
     rollCooldowns[player.UserId]   = nil
     streakCooldowns[player.UserId] = nil
     actionCooldowns[player.UserId] = nil  -- FIX N-NEW-4: clean up action cooldown state
+    leaderboardCooldowns[player.UserId] = nil
+    SavePlayerLeaderboardValue(player)
     DataManager.Unload(player)
 end)
 
@@ -499,35 +615,20 @@ end)
 
 -- Leaderboard request
 RE[RemoteEvents.Names.RequestLeaderboard].OnServerEvent:Connect(function(player)
-    -- Fetch ordered DataStore leaderboard
-    task.spawn(function()
-        local leaderboardStore = game:GetService("DataStoreService")
-            :GetOrderedDataStore(Config.LEADERBOARD_KEY)
-        local ok, pages = pcall(function()
-            return leaderboardStore:GetSortedAsync(false, Config.LEADERBOARD_SIZE)
-        end)
-        if not ok then return end
-        local entries: {[string]: any} = {}
-        local rank = 1
-        while true do
-            local page = pages:GetCurrentPage()
-            for _, entry in page do
-                -- FIX S-4: look up display name from PlayerNames_v1; fall back to userId
-                local nameOk, displayName = pcall(function()
-                    return playerNameStore:GetAsync(entry.key)
-                end)
-                table.insert(entries, {
-                    rank  = rank,
-                    name  = (nameOk and type(displayName) == "string" and displayName) or entry.key,
-                    value = entry.value,
-                })
-                rank += 1
-            end
-            if pages.IsFinished then break end
-            -- FIX N-2: AdvanceToNextPageAsync can throw on DataStore timeout; guard it
-            local advOk = pcall(function() pages:AdvanceToNextPageAsync() end)
-            if not advOk then break end
+    local now = os.clock()
+    if (now - (leaderboardCooldowns[player.UserId] or 0)) < LEADERBOARD_COOLDOWN then
+        if (now - leaderboardResponseCacheAt) <= LEADERBOARD_CACHE_TTL then
+            RE[RemoteEvents.Names.LeaderboardData]:FireClient(player, leaderboardResponseCache)
         end
+        return
+    end
+    leaderboardCooldowns[player.UserId] = now
+
+    task.spawn(function()
+        SavePlayerLeaderboardValue(player)
+        local entries = BuildLeaderboardEntries()
+        leaderboardResponseCache = entries
+        leaderboardResponseCacheAt = os.clock()
         RE[RemoteEvents.Names.LeaderboardData]:FireClient(player, entries)
     end)
 end)
@@ -573,15 +674,8 @@ end
 task.spawn(function()
     while true do
         task.wait(300)  -- update leaderboard every 5 minutes
-        local leaderboardStore = game:GetService("DataStoreService")
-            :GetOrderedDataStore(Config.LEADERBOARD_KEY)
         for _, player in Players:GetPlayers() do
-            local data = DataManager.GetData(player)
-            if data and data.totalHarvested > 0 then
-                pcall(function()
-                    leaderboardStore:SetAsync(tostring(player.UserId), data.totalHarvested)
-                end)
-            end
+            SavePlayerLeaderboardValue(player)
         end
     end
 end)

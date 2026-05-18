@@ -80,7 +80,7 @@ harvest-rng/
 2. In **Game Settings → Security**, enable **Studio Access to API Services** (required for DataStore in Play Solo).
 3. Create the folder hierarchy in the Explorer as described in `docs/TECHNICAL_SPEC.md § 12`.
 4. Copy each Lua file's content into a new `Script` / `LocalScript` / `ModuleScript` in the correct location.
-5. Build the `HarvestRNG_GUI` ScreenGui in StarterGui following the hierarchy in `TECHNICAL_SPEC.md § 12`.
+5. Build the `HarvestRNG_GUI` ScreenGui in StarterGui following the hierarchy in `TECHNICAL_SPEC.md § 12`; `MainClient.client.lua` will compact the HUD and panels automatically on touch/small screens.
 6. Fill in your Gamepass IDs in `src/shared/Config.lua` → `GAMEPASS_IDS`.
 7. Press **Play** (F5) to test.
 
@@ -175,7 +175,7 @@ Rolls add seed IDs to server inventory and immediately send `InventoryUpdate` so
 - `GetAsync` / `SetAsync` each retry 3 times with exponential backoff.
 - `game:BindToClose` saves all loaded players before server shutdown.
 - Schema migrations handled by `Reconcile()` — missing fields get defaults.
-- `PlayerNames_v1` DataStore caches `userId → displayName` on every join for leaderboard name resolution.
+- `PlayerNames_v1` DataStore caches `userId → displayName` on every join for leaderboard name resolution; the leaderboard also keeps an in-memory name cache and merges online players' current `totalHarvested` so fresh harvests can appear before the next periodic OrderedDataStore write.
 
 ### Farm System (`FarmManager.lua`)
 
@@ -184,7 +184,7 @@ Rolls add seed IDs to server inventory and immediately send `InventoryUpdate` so
 - Harvest value: `seed.baseValue × rarityMultiplier × (1 + luck/200)`
 - Planting consumes one inventory seed and immediately refreshes the client inventory snapshot.
 - Plot unlock purchases are saved immediately after server validation.
-- The farm panel is compact and right-docked, with a collapsible `Show` control so players can move without the plot grid blocking the camera.
+- The farm panel starts collapsed on the right with a `Show` control so players can move without the plot grid blocking the camera.
 - The 3D farm plots mirror each player's local plot state, hiding lock markers as plots unlock and showing centered procedural crop markers while seeds grow.
 - All validation runs server-side — clients cannot fake harvest readiness.
 

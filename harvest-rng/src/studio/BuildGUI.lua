@@ -37,6 +37,13 @@ local function Stroke(parent: Instance, color: Color3, thickness: number, transp
     s.Parent = parent
 end
 
+local function TextConstraint(parent: Instance, minSize: number, maxSize: number)
+    local c = Instance.new("UITextSizeConstraint")
+    c.MinTextSize = minSize
+    c.MaxTextSize = maxSize
+    c.Parent = parent
+end
+
 local UI_PANEL = Color3.fromRGB(24, 27, 42)
 local UI_PANEL_SOFT = Color3.fromRGB(31, 36, 54)
 local UI_STROKE = Color3.fromRGB(93, 106, 150)
@@ -62,6 +69,7 @@ local hud = Make("Frame", screen, {
     Position = UDim2.fromOffset(0, 0),
     BackgroundColor3 = Color3.fromRGB(9, 10, 18),
     BackgroundTransparency = 0.18,
+    ClipsDescendants = true,
 }) :: Frame
 
 -- stat labels
@@ -80,6 +88,7 @@ local function StatLabel(name: string, text: string, order: number)
     })
     Corner(lbl, 10)
     Stroke(lbl, Color3.fromRGB(255, 255, 255), 1, 0.88)
+    TextConstraint(lbl, 12, 28)
     return lbl
 end
 
@@ -112,6 +121,7 @@ local function NavBtn(name: string, text: string, order: number)
     }) :: TextButton
     Corner(btn, 8)
     Stroke(btn, Color3.fromRGB(255, 255, 255), 1, 0.82)
+    TextConstraint(btn, 12, 28)
     return btn
 end
 
@@ -141,6 +151,7 @@ Make("TextLabel", rollPanel, {
     Font = Enum.Font.GothamBold,
     TextScaled = true,
 })
+TextConstraint(rollPanel.Title, 14, 32)
 
 -- Result display area
 local resultFrame = Make("Frame", rollPanel, {
@@ -175,6 +186,7 @@ Make("TextLabel", resultFrame, {
     TextXAlignment = Enum.TextXAlignment.Left,
     ZIndex = 2,
 })
+TextConstraint(resultFrame.SeedName, 12, 30)
 Make("TextLabel", resultFrame, {
     Name = "RarityLabel",
     Size = UDim2.new(1, -94, 0, 28),
@@ -189,6 +201,7 @@ Make("TextLabel", resultFrame, {
     TextXAlignment = Enum.TextXAlignment.Left,
     ZIndex = 2,
 })
+TextConstraint(resultFrame.RarityLabel, 10, 24)
 
 -- Roll buttons
 local function RollBtn(name: string, text: string, yPos: number, bgColor: Color3)
@@ -204,6 +217,7 @@ local function RollBtn(name: string, text: string, yPos: number, bgColor: Color3
     }) :: TextButton
     Corner(btn, 8)
     Stroke(btn, Color3.fromRGB(255, 255, 255), 1, 0.82)
+    TextConstraint(btn, 14, 30)
     return btn
 end
 
@@ -214,32 +228,33 @@ RollBtn("RollX10Button", "🎰  Roll ×10  (450 coins)", 166, UI_GOLD)
 
 local farmPanel = Make("Frame", screen, {
     Name = "FarmPanel",
-    Size = UDim2.fromOffset(348, 392),
-    Position = UDim2.new(1, -360, 0, 64),
+    Size = UDim2.fromOffset(240, 44),
+    Position = UDim2.new(1, -252, 0, 64),
     BackgroundColor3 = UI_PANEL,
-    BackgroundTransparency = 0.16,
+    BackgroundTransparency = 0.12,
 }) :: Frame
 Corner(farmPanel, 12)
 Stroke(farmPanel, Color3.fromRGB(78, 129, 82), 1.5, 0.18)
 
 Make("TextLabel", farmPanel, {
     Name = "Title",
-    Size = UDim2.new(1,-92,0,34),
-    Position = UDim2.fromOffset(12, 6),
+    Size = UDim2.new(1,-88,1,0),
+    Position = UDim2.fromOffset(12, 0),
     BackgroundTransparency = 1,
-    Text = "🌾  Your Farm",
+    Text = "Your Farm",
     TextColor3 = Color3.new(1,1,1),
     Font = Enum.Font.GothamBold,
     TextScaled = true,
     TextXAlignment = Enum.TextXAlignment.Left,
 })
+TextConstraint(farmPanel.Title, 14, 34)
 
 local farmToggle = Make("TextButton", farmPanel, {
     Name = "ToggleFarmButton",
     Size = UDim2.fromOffset(70, 28),
     Position = UDim2.new(1, -80, 0, 8),
     BackgroundColor3 = Color3.fromRGB(48, 116, 65),
-    Text = "Hide",
+    Text = "Show",
     TextColor3 = Color3.new(1,1,1),
     Font = Enum.Font.GothamBold,
     TextScaled = true,
@@ -247,6 +262,7 @@ local farmToggle = Make("TextButton", farmPanel, {
 }) :: TextButton
 Corner(farmToggle, 8)
 Stroke(farmToggle, Color3.fromRGB(255, 255, 255), 1, 0.82)
+TextConstraint(farmToggle, 13, 26)
 
 local plotContainer = Make("ScrollingFrame", farmPanel, {
     Name = "PlotContainer",
@@ -256,6 +272,7 @@ local plotContainer = Make("ScrollingFrame", farmPanel, {
     ScrollBarThickness = 4,
     AutomaticCanvasSize = Enum.AutomaticSize.Y,
     CanvasSize = UDim2.new(0,0,0,0),
+    Visible = false,
 }) :: ScrollingFrame
 
 Make("UIGridLayout", plotContainer, {

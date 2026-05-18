@@ -13,6 +13,7 @@
 
 local Players          = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui   = LocalPlayer:WaitForChild("PlayerGui")
@@ -133,6 +134,16 @@ local function EnsureStroke(instance: Instance, color: Color3, thickness: number
     stroke.Transparency = transparency or 0
 end
 
+local function EnsureTextSizeConstraint(instance: Instance, minSize: number, maxSize: number)
+    local constraint = instance:FindFirstChildOfClass("UITextSizeConstraint")
+    if not constraint then
+        constraint = Instance.new("UITextSizeConstraint")
+        constraint.Parent = instance
+    end
+    constraint.MinTextSize = minSize
+    constraint.MaxTextSize = maxSize
+end
+
 local function StyleButton(button: TextButton, color: Color3, textColor: Color3?)
     button.BackgroundColor3 = color
     button.TextColor3 = textColor or Color3.fromRGB(255, 255, 255)
@@ -150,6 +161,32 @@ local function StylePanel(panel: Frame, strokeColor: Color3?)
     EnsureStroke(panel, strokeColor or UI_STROKE, 1.5, 0.18)
 end
 
+local function GetInterfaceSize(): Vector2
+    local size = GUI.AbsoluteSize
+    if size.X > 0 and size.Y > 0 then
+        return size
+    end
+
+    local camera = workspace.CurrentCamera
+    if camera then
+        return camera.ViewportSize
+    end
+
+    return Vector2.new(1280, 720)
+end
+
+local function IsCompactLayout(size: Vector2): boolean
+    return UserInputService.TouchEnabled or size.X <= 900 or size.Y <= 520
+end
+
+local FARM_EXPANDED_SIZE = UDim2.fromOffset(348, 392)
+local FARM_EXPANDED_POSITION = UDim2.new(1, -360, 0, 64)
+local FARM_COLLAPSED_SIZE = UDim2.fromOffset(240, 44)
+local FARM_COLLAPSED_POSITION = UDim2.new(1, -252, 0, 64)
+local farmCollapsed = false
+local compactLayoutActive = false
+local SetFarmCollapsed: ((boolean) -> ())?
+
 local function EnsureCloseButton(panel: Frame): TextButton
     local existing = panel:FindFirstChild("CloseBtn")
     if existing and existing:IsA("TextButton") then
@@ -166,95 +203,210 @@ end
 local function ApplyInterfaceRefresh()
     GUI.IgnoreGuiInset = false
 
-    HUD.Size = UDim2.new(1, 0, 0, 52)
+    local interfaceSize = GetInterfaceSize()
+    compactLayoutActive = IsCompactLayout(interfaceSize)
+    GUI:SetAttribute("CompactHUD", compactLayoutActive)
+
+    local hudHeight = if compactLayoutActive then 44 else 52
+    local hudGap = if compactLayoutActive then 4 else 8
+    local hudItemHeight = if compactLayoutActive then 32 else 36
+    local hudWidths = if compactLayoutActive
+        then {
+            CoinsLabel = 92,
+            GemsLabel = 58,
+            LuckLabel = 112,
+            StreakLabel = 74,
+            InventoryButton = 86,
+            UpgradeButton = 82,
+            LeaderboardButton = 104,
+        }
+        else {
+            CoinsLabel = 116,
+            GemsLabel = 116,
+            LuckLabel = 160,
+            StreakLabel = 116,
+            InventoryButton = 118,
+            UpgradeButton = 118,
+            LeaderboardButton = 134,
+        }
+
+    HUD.Size = UDim2.new(1, 0, 0, hudHeight)
     HUD.Position = UDim2.fromOffset(0, 0)
     HUD.BackgroundColor3 = Color3.fromRGB(9, 10, 18)
     HUD.BackgroundTransparency = 0.18
+    HUD.ClipsDescendants = true
 
     local hudLayout = HUD:FindFirstChildOfClass("UIListLayout")
     if hudLayout then
-        hudLayout.Padding = UDim.new(0, 8)
+        hudLayout.Padding = UDim.new(0, hudGap)
         hudLayout.VerticalAlignment = Enum.VerticalAlignment.Center
     end
 
     for _, child in HUD:GetChildren() do
         if child:IsA("TextLabel") then
-            child.Size = UDim2.fromOffset(if child.Name == "LuckLabel" then 160 else 116, 36)
+            child.Size = UDim2.fromOffset(hudWidths[child.Name] or 100, hudItemHeight)
             child.BackgroundColor3 = Color3.fromRGB(24, 27, 42)
             child.BackgroundTransparency = 0.08
             child.TextColor3 = Color3.fromRGB(244, 247, 255)
             child.TextXAlignment = Enum.TextXAlignment.Center
             child.TextScaled = true
+            child.TextWrapped = false
             EnsureCorner(child, 10)
             EnsureStroke(child, Color3.fromRGB(255, 255, 255), 1, 0.88)
+            EnsureTextSizeConstraint(child, 12, if compactLayoutActive then 22 else 28)
         elseif child:IsA("TextButton") then
-            child.Size = UDim2.fromOffset(if child.Name == "LeaderboardButton" then 134 else 118, 36)
+            child.Size = UDim2.fromOffset(hudWidths[child.Name] or 100, hudItemHeight)
+            if compactLayoutActive then
+                if child.Name == "InventoryButton" then
+                    child.Text = "🎒 Inv"
+                elseif child.Name == "UpgradeButton" then
+                    child.Text = "⬆ Up"
+                elseif child.Name == "LeaderboardButton" then
+                    child.Text = "🏆 Board"
+                end
+            else
+                if child.Name == "InventoryButton" then
+                    child.Text = "🎒 Inventory"
+                elseif child.Name == "UpgradeButton" then
+                    child.Text = "⬆️ Upgrades"
+                elseif child.Name == "LeaderboardButton" then
+                    child.Text = "🏆 Leaderboard"
+                end
+            end
             StyleButton(child, UI_BLUE)
+            child.TextWrapped = false
+            EnsureTextSizeConstraint(child, 12, if compactLayoutActive then 21 else 28)
         end
     end
 
     StylePanel(RollPanel, Color3.fromRGB(84, 92, 140))
-    RollPanel.Size = UDim2.fromOffset(292, 196)
-    RollPanel.Position = UDim2.new(0, 12, 1, -208)
+    local rollPanelWidth = if compactLayoutActive then 248 else 292
+    local rollPanelHeight = if compactLayoutActive then 176 else 196
+    local rollMargin = if compactLayoutActive then 8 else 12
+    local rollTitleHeight = if compactLayoutActive then 28 else 34
+    local resultHeight = if compactLayoutActive then 62 else 78
+    local resultY = if compactLayoutActive then 40 else 46
+    local rollButtonHeight = if compactLayoutActive then 28 else 32
+    local rollButtonY = if compactLayoutActive then 108 else 130
+    local rollX10Y = if compactLayoutActive then 140 else 166
+
+    RollPanel.Size = UDim2.fromOffset(rollPanelWidth, rollPanelHeight)
+    RollPanel.Position = UDim2.new(0, rollMargin, 1, -(rollPanelHeight + rollMargin))
     local rollTitle = RollPanel:FindFirstChild("Title")
     if rollTitle and rollTitle:IsA("TextLabel") then
-        rollTitle.Size = UDim2.new(1, -20, 0, 34)
+        rollTitle.Size = UDim2.new(1, -20, 0, rollTitleHeight)
         rollTitle.Position = UDim2.fromOffset(10, 8)
         rollTitle.TextXAlignment = Enum.TextXAlignment.Left
+        rollTitle.TextWrapped = false
+        EnsureTextSizeConstraint(rollTitle, 14, if compactLayoutActive then 24 else 32)
     end
     local resultFrame = RollPanel:FindFirstChild("ResultFrame")
     if resultFrame and resultFrame:IsA("Frame") then
-        resultFrame.Size = UDim2.new(1, -20, 0, 78)
-        resultFrame.Position = UDim2.fromOffset(10, 46)
+        resultFrame.Size = UDim2.new(1, -20, 0, resultHeight)
+        resultFrame.Position = UDim2.fromOffset(10, resultY)
         resultFrame.BackgroundColor3 = UI_PANEL_SOFT
         resultFrame.BackgroundTransparency = 0.04
         EnsureCorner(resultFrame, 10)
+
+        local seedEmoji = resultFrame:FindFirstChild("SeedEmoji")
+        local seedName = resultFrame:FindFirstChild("SeedName")
+        local rarityLabel = resultFrame:FindFirstChild("RarityLabel")
+        local iconSize = if compactLayoutActive then 48 else 64
+        local textX = if compactLayoutActive then 66 else 84
+
+        if seedEmoji and seedEmoji:IsA("TextLabel") then
+            seedEmoji.Size = UDim2.fromOffset(iconSize, iconSize)
+            seedEmoji.Position = UDim2.fromOffset(if compactLayoutActive then 8 else 12, if compactLayoutActive then 7 else 10)
+        end
+        if seedName and seedName:IsA("TextLabel") then
+            seedName.Size = UDim2.new(1, -(textX + 8), 0, if compactLayoutActive then 34 else 42)
+            seedName.Position = UDim2.fromOffset(textX, if compactLayoutActive then 5 else 8)
+            EnsureTextSizeConstraint(seedName, 12, if compactLayoutActive then 24 else 30)
+        end
+        if rarityLabel and rarityLabel:IsA("TextLabel") then
+            rarityLabel.Size = UDim2.new(1, -(textX + 8), 0, if compactLayoutActive then 22 else 28)
+            rarityLabel.Position = UDim2.fromOffset(textX, if compactLayoutActive then 38 else 50)
+            EnsureTextSizeConstraint(rarityLabel, 10, if compactLayoutActive then 19 else 24)
+        end
     end
-    RollButton.Size = UDim2.new(1, -20, 0, 32)
-    RollButton.Position = UDim2.fromOffset(10, 130)
+    RollButton.Size = UDim2.new(1, -20, 0, rollButtonHeight)
+    RollButton.Position = UDim2.fromOffset(10, rollButtonY)
     StyleButton(RollButton, UI_GREEN, Color3.fromRGB(10, 18, 12))
-    RollX10Button.Size = UDim2.new(1, -20, 0, 32)
-    RollX10Button.Position = UDim2.fromOffset(10, 166)
+    EnsureTextSizeConstraint(RollButton, 14, if compactLayoutActive then 24 else 30)
+    RollX10Button.Size = UDim2.new(1, -20, 0, rollButtonHeight)
+    RollX10Button.Position = UDim2.fromOffset(10, rollX10Y)
     StyleButton(RollX10Button, UI_GOLD, Color3.fromRGB(18, 14, 4))
+    EnsureTextSizeConstraint(RollX10Button, 14, if compactLayoutActive then 23 else 30)
 
     StylePanel(FarmPanel, Color3.fromRGB(78, 129, 82))
-    FarmPanel.Size = UDim2.fromOffset(348, 392)
-    FarmPanel.Position = UDim2.new(1, -360, 0, 64)
+    local sideMargin = if compactLayoutActive then 8 else 12
+    local farmTop = hudHeight + sideMargin
+    local expandedWidth = if compactLayoutActive then math.max(246, math.min(300, interfaceSize.X - 16)) else 348
+    local expandedHeight = if compactLayoutActive then math.max(220, math.min(280, interfaceSize.Y - farmTop - 12)) else 392
+    local collapsedWidth = if compactLayoutActive then 204 else 240
+    local collapsedHeight = if compactLayoutActive then 40 else 44
+    local farmButtonWidth = if compactLayoutActive then 58 else 70
+    local farmButtonHeight = if compactLayoutActive then 26 else 28
+
+    FARM_EXPANDED_SIZE = UDim2.fromOffset(expandedWidth, expandedHeight)
+    FARM_EXPANDED_POSITION = UDim2.new(1, -(expandedWidth + sideMargin), 0, farmTop)
+    FARM_COLLAPSED_SIZE = UDim2.fromOffset(collapsedWidth, collapsedHeight)
+    FARM_COLLAPSED_POSITION = UDim2.new(1, -(collapsedWidth + sideMargin), 0, farmTop)
+    FarmPanel.Size = FARM_EXPANDED_SIZE
+    FarmPanel.Position = FARM_EXPANDED_POSITION
     FarmPanel.BackgroundTransparency = 0.16
-    FarmTitle.Size = UDim2.new(1, -92, 0, 34)
-    FarmTitle.Position = UDim2.fromOffset(12, 6)
+    FarmTitle.Size = UDim2.new(1, -(farmButtonWidth + 22), 0, if compactLayoutActive then 30 else 34)
+    FarmTitle.Position = UDim2.fromOffset(12, if compactLayoutActive then 5 else 6)
     FarmTitle.TextXAlignment = Enum.TextXAlignment.Left
-    FarmToggleButton.Size = UDim2.fromOffset(70, 28)
-    FarmToggleButton.Position = UDim2.new(1, -80, 0, 8)
+    FarmTitle.TextWrapped = false
+    EnsureTextSizeConstraint(FarmTitle, 14, if compactLayoutActive then 25 else 34)
+    FarmToggleButton.Size = UDim2.fromOffset(farmButtonWidth, farmButtonHeight)
+    FarmToggleButton.Position = UDim2.new(1, -(farmButtonWidth + 10), 0, if compactLayoutActive then 7 else 8)
     StyleButton(FarmToggleButton, Color3.fromRGB(48, 116, 65))
+    EnsureTextSizeConstraint(FarmToggleButton, 13, if compactLayoutActive then 22 else 26)
     PlotContainer.Size = UDim2.new(1, -14, 1, -48)
     PlotContainer.Position = UDim2.fromOffset(7, 42)
     PlotContainer.ScrollBarThickness = 4
     local grid = PlotContainer:FindFirstChildOfClass("UIGridLayout")
     if grid then
-        grid.CellSize = UDim2.fromOffset(76, 76)
-        grid.CellPadding = UDim2.fromOffset(6, 6)
+        grid.CellSize = UDim2.fromOffset(if compactLayoutActive then 58 else 76, if compactLayoutActive then 58 else 76)
+        grid.CellPadding = UDim2.fromOffset(if compactLayoutActive then 5 else 6, if compactLayoutActive then 5 else 6)
+    end
+
+    if SetFarmCollapsed then
+        SetFarmCollapsed(farmCollapsed)
+    end
+
+    local function CenterPanel(panel: Frame, width: number, height: number)
+        local x = math.floor((interfaceSize.X - width) / 2)
+        local y = math.floor((interfaceSize.Y - height) / 2)
+        if compactLayoutActive then
+            y = math.max(hudHeight + 8, y)
+        end
+        panel.Size = UDim2.fromOffset(width, height)
+        panel.Position = UDim2.fromOffset(x, y)
     end
 
     StylePanel(UpgradePanel, UI_STROKE)
-    UpgradePanel.Size = UDim2.fromOffset(360, 254)
-    UpgradePanel.Position = UDim2.new(0.5, -180, 0.5, -127)
+    local upgradeWidth = if compactLayoutActive then math.max(280, math.min(340, interfaceSize.X - 20)) else 360
+    CenterPanel(UpgradePanel, upgradeWidth, if compactLayoutActive then 232 else 254)
     StyleButton(LuckUpgradeBtn, Color3.fromRGB(46, 126, 60))
     StyleButton(SpeedUpgradeBtn, Color3.fromRGB(198, 135, 34), Color3.fromRGB(18, 12, 4))
-    LuckUpgradeBtn.Size = UDim2.new(1, -24, 0, 64)
-    LuckUpgradeBtn.Position = UDim2.fromOffset(12, 58)
-    SpeedUpgradeBtn.Size = UDim2.new(1, -24, 0, 64)
-    SpeedUpgradeBtn.Position = UDim2.fromOffset(12, 132)
+    LuckUpgradeBtn.Size = UDim2.new(1, -24, 0, if compactLayoutActive then 56 else 64)
+    LuckUpgradeBtn.Position = UDim2.fromOffset(12, if compactLayoutActive then 52 else 58)
+    SpeedUpgradeBtn.Size = UDim2.new(1, -24, 0, if compactLayoutActive then 56 else 64)
+    SpeedUpgradeBtn.Position = UDim2.fromOffset(12, if compactLayoutActive then 118 else 132)
 
     StylePanel(InventoryPanel, UI_STROKE)
-    InventoryPanel.Size = UDim2.fromOffset(380, 430)
-    InventoryPanel.Position = UDim2.new(0.5, -190, 0.5, -215)
+    local inventoryWidth = if compactLayoutActive then math.max(292, math.min(360, interfaceSize.X - 20)) else 380
+    local modalHeight = if compactLayoutActive then math.max(250, math.min(330, interfaceSize.Y - hudHeight - 24)) else 430
+    CenterPanel(InventoryPanel, inventoryWidth, modalHeight)
     InventoryScrollFrame.Size = UDim2.new(1, -16, 1, -56)
     InventoryScrollFrame.Position = UDim2.fromOffset(8, 48)
 
     StylePanel(LeaderboardPanel, UI_GOLD)
-    LeaderboardPanel.Size = UDim2.fromOffset(400, 430)
-    LeaderboardPanel.Position = UDim2.new(0.5, -200, 0.5, -215)
+    local leaderboardWidth = if compactLayoutActive then math.max(292, math.min(360, interfaceSize.X - 20)) else 400
+    CenterPanel(LeaderboardPanel, leaderboardWidth, modalHeight)
 
     local closeButtons = {
         EnsureCloseButton(UpgradePanel),
@@ -264,8 +416,8 @@ local function ApplyInterfaceRefresh()
     for _, closeButton in closeButtons do
         if closeButton and closeButton:IsA("TextButton") then
             closeButton.Text = "X"
-            closeButton.Size = UDim2.fromOffset(30, 30)
-            closeButton.Position = UDim2.new(1, -38, 0, 8)
+            closeButton.Size = UDim2.fromOffset(if compactLayoutActive then 32 else 30, if compactLayoutActive then 32 else 30)
+            closeButton.Position = UDim2.new(1, if compactLayoutActive then -40 else -38, 0, 8)
             StyleButton(closeButton, UI_RED)
         end
     end
@@ -275,23 +427,37 @@ ApplyInterfaceRefresh()
 
 local InventoryCloseBtn = InventoryPanel:FindFirstChild("CloseBtn") :: TextButton?
 
-local FARM_EXPANDED_SIZE = FarmPanel.Size
-local FARM_EXPANDED_POSITION = FarmPanel.Position
-local FARM_COLLAPSED_SIZE = UDim2.fromOffset(196, 44)
-local FARM_COLLAPSED_POSITION = UDim2.new(1, -208, 0, 64)
-local farmCollapsed = false
-
-local function SetFarmCollapsed(collapsed: boolean)
+SetFarmCollapsed = function(collapsed: boolean)
     farmCollapsed = collapsed
     PlotContainer.Visible = not collapsed
     FarmPanel.Size = if collapsed then FARM_COLLAPSED_SIZE else FARM_EXPANDED_SIZE
     FarmPanel.Position = if collapsed then FARM_COLLAPSED_POSITION else FARM_EXPANDED_POSITION
     FarmPanel.BackgroundTransparency = if collapsed then 0.12 else 0.16
-    FarmTitle.Size = if collapsed then UDim2.new(1, -88, 1, 0) else UDim2.new(1, -92, 0, 34)
-    FarmTitle.Position = if collapsed then UDim2.fromOffset(12, 0) else UDim2.fromOffset(12, 6)
-    FarmTitle.Text = if collapsed then "Your Farm" else "🌾  Your Farm"
+    local buttonWidth = if compactLayoutActive then 58 else 70
+    FarmTitle.Size = if collapsed
+        then UDim2.new(1, -(buttonWidth + 22), 1, 0)
+        else UDim2.new(1, -(buttonWidth + 22), 0, if compactLayoutActive then 30 else 34)
+    FarmTitle.Position = if collapsed then UDim2.fromOffset(12, 0) else UDim2.fromOffset(12, if compactLayoutActive then 5 else 6)
+    FarmTitle.Text = if collapsed then (if compactLayoutActive then "Farm" else "Your Farm") else "🌾  Your Farm"
     FarmToggleButton.Text = if collapsed then "Show" else "Hide"
 end
+
+SetFarmCollapsed(true)
+
+local layoutRefreshPending = false
+GUI:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+    if layoutRefreshPending then
+        return
+    end
+
+    layoutRefreshPending = true
+    task.defer(function()
+        layoutRefreshPending = false
+        ApplyInterfaceRefresh()
+        SetFarmCollapsed(farmCollapsed)
+        UIManager.UpdateStats(playerStats)
+    end)
+end)
 
 FarmToggleButton.Activated:Connect(function()
     SetFarmCollapsed(not farmCollapsed)
@@ -856,6 +1022,19 @@ RE[RemoteEventsModule.Names.LeaderboardData].OnClientEvent:Connect(function(entr
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Parent    = scrollFrame
 
+    if #entries == 0 then
+        local emptyRow = Instance.new("TextLabel")
+        emptyRow.Size = UDim2.new(1, 0, 0, 44)
+        emptyRow.BackgroundTransparency = 0.9
+        emptyRow.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+        emptyRow.Text = "No harvests yet. Harvest crops to appear here."
+        emptyRow.TextColor3 = Color3.fromRGB(230, 230, 240)
+        emptyRow.Font = Enum.Font.Gotham
+        emptyRow.TextScaled = true
+        emptyRow.Parent = scrollFrame
+        return
+    end
+
     for i, entry in entries do
         local row = Instance.new("TextLabel")
         row.Size             = UDim2.new(1, 0, 0, 28)
@@ -865,7 +1044,7 @@ RE[RemoteEventsModule.Names.LeaderboardData].OnClientEvent:Connect(function(entr
         row.Text             = string.format("#%d  %s  -  %s coins",
             entry.rank,
             tostring(entry.name),
-            tostring(entry.value)
+            FormatCoins(tonumber(entry.value) or 0)
         )
         row.TextColor3       = Color3.new(1, 1, 1)
         row.Font             = Enum.Font.Gotham

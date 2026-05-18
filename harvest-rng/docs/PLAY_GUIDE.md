@@ -91,10 +91,10 @@ For a first-session route, see [NEW_PLAYER_WALKTHROUGH.md](NEW_PLAYER_WALKTHROUG
 | 2️⃣ | **Plant** — Click "Plant" on an empty plot → pick a seed from the modal; the matching 3D plot shows a small centered crop marker while it grows |
 | 3️⃣ | **Wait** — Timer counts down on each plot (Common = 30s, Mythic = up to 4h) |
 | 4️⃣ | **Harvest** — Click "Harvest" when plot shows ✅ Ready! → coins pop up |
-| 5️⃣ | **Hide/Show Farm** — The farm grid is docked on the right side so the center view stays clear. Click **Hide** when you want maximum camera space, then **Show** to bring the grid back. |
+| 5️⃣ | **Show/Hide Farm** — The farm grid starts collapsed on the right side so the center view stays clear. Click **Show** to open the grid, then **Hide** when you want maximum camera space again. |
 | 6️⃣ | **Upgrade** — Spend coins on Luck (better RNG) or Harvest Speed (faster grows). Upgrade buttons show the next scaled coin cost for your current level. |
 | 7️⃣ | **Unlock Plots** — Click 🔒 on a locked plot to buy it with coins; the unlock is saved immediately and the matching 3D plot sheds its lock marker |
-| 8️⃣ | **Repeat** — Roll more seeds, flex rare finds on the leaderboard |
+| 8️⃣ | **Repeat** — Roll more seeds, flex harvest value on the leaderboard; online players' latest harvest totals show without waiting for the periodic global save |
 
 ---
 
@@ -143,4 +143,5 @@ Config.GAMEPASS_IDS = {
 | Plots don't show up | Check `PlotContainer` is a ScrollingFrame with UIGridLayout child |
 | Picker shows a seed but planting says you don't have it | Reopen the picker after the toast; the server now refreshes inventory after every plant attempt |
 | Leaderboard or Inventory covers the screen | Click the red **X** in the panel corner or click the matching HUD button again |
+| Mobile HUD text overlaps or gets cut off | Make sure `MainClient.client.lua` and `UIManager.lua` are updated; touch devices use the compact HUD and smaller roll/farm panels automatically |
 | Inventory looks empty after rolling | Stop/Play after updating; rolls now push `InventoryUpdate` and the Inventory panel renders seed rows |

@@ -178,7 +178,7 @@ No circular dependencies. Shared modules have zero requires of their own (pure d
 **DataStore name:** `HarvestRNG_PlayerData_v1`  
 **Key format:** `player_{userId}`  
 **Leaderboard:** `OrderedDataStore("TotalHarvested_v1")`  
-**Display names:** `DataStore("PlayerNames_v1")` — key: `{userId}`, value: `displayName` string; written on every `OnPlayerAdded`, read by leaderboard handler
+**Display names:** `DataStore("PlayerNames_v1")` — key: `{userId}`, value: `displayName` string; written on every `OnPlayerAdded`, cached in memory, and used by leaderboard rendering
 
 ### Player data schema (Luau types)
 
@@ -227,7 +227,7 @@ type PlayerData = {
 |-----------|-------------|-----------|
 | GetAsync | 60 req/min per key | 1 per player join; 3 retries max |
 | SetAsync | 60 req/min per key | Auto-save every 60 s + on remove |
-| OrderedDataStore SetAsync | 60 req/min | 1 per player per 5-min leaderboard tick |
+| OrderedDataStore SetAsync | 60 req/min | 1 per player per 5-min leaderboard tick, plus save-on-leave and one guarded save when a player opens the leaderboard |
 
 With 50 concurrent players: ~50 GetAsync on join, ~50 SetAsync/min auto-save. Well within budget.
 
@@ -250,7 +250,7 @@ All remotes live in `ReplicatedStorage/Events` (RemoteEvents) and `ReplicatedSto
 | `RequestUpgradeHarvestSpeed` | (none) | Validate cost, update multiplier, fire `UpgradeResult` + `StatsUpdate` |
 | `RequestClaimStreak` | (none) | Re-run daily streak logic, fire `DailyStreakClaimed` if applicable |
 | `RequestInventory` | (none) | Fire `InventoryUpdate` with current inventory |
-| `RequestLeaderboard` | (none) | Fetch OrderedDataStore, fire `LeaderboardData` |
+| `RequestLeaderboard` | (none) | Fetch cached/OrderedDataStore leaderboard, merge online players' current totals, fire `LeaderboardData` |
 
 ### Server → Client (RemoteEvents)
 
@@ -264,7 +264,7 @@ All remotes live in `ReplicatedStorage/Events` (RemoteEvents) and `ReplicatedSto
 | `UpgradeResult` | `{stat, newValue, newLevel}` | Toast notification |
 | `DailyStreakClaimed` | `{day, coins, gems}` | Streak banner modal |
 | `InventoryUpdate` | `{inventory: {[string]: number}}` | Inventory panel refresh after rolls, plant attempts, or explicit requests |
-| `LeaderboardData` | `{rank, name, value}[]` | Leaderboard panel rows |
+| `LeaderboardData` | `{rank, name, value}[]` | Leaderboard panel rows; empty array renders a "No harvests yet" row client-side |
 | `Notification` | `{message, style?}` | Toast notification |
 
 ### Client → Server (RemoteFunctions)
@@ -419,7 +419,7 @@ In `StarterGui`, create a `ScreenGui` named `HarvestRNG_GUI` with children:
 
 ```
 HarvestRNG_GUI (ScreenGui, ResetOnSpawn = false)
-├── HUD (Frame, full-screen anchor)
+├── HUD (Frame, top anchor; compact touch layout is applied by MainClient)
 │   ├── CoinsLabel    (TextLabel)
 │   ├── GemsLabel     (TextLabel)
 │   ├── LuckLabel     (TextLabel)
@@ -435,8 +435,8 @@ HarvestRNG_GUI (ScreenGui, ResetOnSpawn = false)
 │       ├── SeedName   (TextLabel)
 │       └── RarityLabel (TextLabel)
 ├── FarmPanel (Frame, compact right-docked panel)
-│   ├── ToggleFarmButton (TextButton, "Hide" / "Show")
-│   └── PlotContainer (ScrollingFrame, UIGridLayout inside; hidden when panel is collapsed)
+│   ├── ToggleFarmButton (TextButton, defaults to "Show"; switches to "Hide" when expanded)
+│   └── PlotContainer (ScrollingFrame, UIGridLayout inside; hidden by default while the panel is collapsed)
 ├── InventoryPanel (Frame, Visible=false)
 │   ├── CloseBtn (TextButton)
 │   └── ScrollFrame (ScrollingFrame; rendered with seed rows from `InventoryUpdate`)
@@ -450,6 +450,8 @@ HarvestRNG_GUI (ScreenGui, ResetOnSpawn = false)
 └── NotificationFrame (Frame, Visible=false, anchored bottom-center)
     └── NotifLabel (TextLabel)
 ```
+
+`MainClient.client.lua` re-applies responsive layout when `HarvestRNG_GUI.AbsoluteSize` changes. Touch/small viewports use abbreviated HUD stats, smaller roll/farm panels, and centered modal panels so phone landscape does not overflow or cover core gameplay controls.
 
 ### Step 3: Fill in Gamepass IDs
 

@@ -105,6 +105,10 @@ local function FormatNumber(n: number): string
     return tostring(n)
 end
 
+local function UseCompactHUD(): boolean
+    return GUI:GetAttribute("CompactHUD") == true
+end
+
 local SEED_ICON_LAYER = "SeedIconLayer"
 
 local function AddIconPart(parent: Instance, name: string, position: UDim2, size: UDim2, color: Color3, radius: number, zIndex: number): Frame
@@ -249,7 +253,7 @@ end
 
 --- Updates the coin counter in the HUD.
 function UIManager.UpdateCoins(amount: number)
-    CoinsLabel.Text = "Coins " .. FormatNumber(amount)
+    CoinsLabel.Text = if UseCompactHUD() then "¢ " .. FormatNumber(amount) else "Coins " .. FormatNumber(amount)
     -- Quick bounce
     Tween(CoinsLabel, TweenInfo.new(0.08, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         TextSize = CoinsLabel.TextSize + 4
@@ -259,17 +263,19 @@ end
 
 --- Updates the gem counter in the HUD.
 function UIManager.UpdateGems(amount: number)
-    GemsLabel.Text = "💎 " .. FormatNumber(amount)
+    GemsLabel.Text = if UseCompactHUD() then "💎" .. FormatNumber(amount) else "💎 " .. FormatNumber(amount)
 end
 
 --- Updates the luck display in the HUD.
 function UIManager.UpdateLuck(luckStat: number, level: number)
-    LuckLabel.Text = string.format("🍀 Luck %d (Lv%d)", luckStat, level)
+    LuckLabel.Text = if UseCompactHUD()
+        then string.format("🍀 %d L%d", luckStat, level)
+        else string.format("🍀 Luck %d (Lv%d)", luckStat, level)
 end
 
 --- Updates the daily streak counter.
 function UIManager.UpdateStreak(streak: number)
-    StreakLabel.Text = string.format("🔥 Streak: %d", streak)
+    StreakLabel.Text = if UseCompactHUD() then string.format("🔥 %d", streak) else string.format("🔥 Streak: %d", streak)
 end
 
 --- Bulk update from a StatsUpdate event payload.
